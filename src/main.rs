@@ -1,9 +1,10 @@
 mod scenes;
 mod utility;
 
-use iced::Element;
+use iced::{Element, Font, Pixels, Size};
 use crate::scenes::create_profile::{MsgCreateProfile, SceneCreateProfile};
 use crate::scenes::homepage::{MsgHomePage, SceneHomePage};
+use iced::Settings;
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -61,6 +62,37 @@ impl Default for SceneType {
 
 
 pub fn main() -> iced::Result {
-    iced::run("GMAcorn", SceneMain::update, SceneMain::view)
+    let settings = Settings {
+        id: Some("ts id pmo".to_string()),
+        fonts: vec![],
+        default_font: Font::DEFAULT,
+        default_text_size: Pixels(14.0),
+        antialiasing: true,
+    };
+
+    let window_settings = iced::window::Settings {
+        size: Size{ width: 500.0, height: 500.0 },
+        position: iced::window::Position::Centered,
+        min_size: Some(Size{ width: 300.0, height: 300.0 }),
+        max_size: None,
+        visible: true,
+        resizable: true,
+        decorations: true,
+        transparent: false,
+        level: iced::window::Level::Normal,
+        icon: None,     // TODO
+        platform_specific: iced::window::settings::PlatformSpecific {
+            application_id: "idk what this application id is supposed to be".to_string(),
+            override_redirect: false,
+        },
+        exit_on_close_request: true,
+    };
+
+    iced::application("GMAcorn", SceneMain::update, SceneMain::view)
+        .theme(|_| iced::Theme::GruvboxDark)
+        .settings(settings)
+        .window(window_settings)
+        .run()
+
 }
 

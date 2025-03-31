@@ -1,4 +1,4 @@
-use iced::{alignment, Color, Element};
+use iced::{alignment, Alignment, Color, Element};
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use crate::{GameType, Msg, SceneCreateProfile, SceneMain, SceneType};
 use crate::utility::get_default_profile_path;
@@ -38,34 +38,35 @@ impl SceneMain {
         let main_content = container(
             iced::widget::column![
                 column![
-                    text("").size(20),
-                    text("GMAcorn").size(46).color(color_text1),
-                ]
-                .width(1000)
-                .align_x(alignment::Horizontal::Center),
-                column![
-                    text("").size(20),
-                    text("Recent Profiles").size(20).color(color_text2).align_x(alignment::Horizontal::Center),
-                    scrollable(profiles).height(500),
+                    text("").size(10),
+                    text("GMAcorn").size(28).color(color_text1),
+                    text("").size(6),
+                    text("Recent Profiles").size(12).color(color_text2).align_x(alignment::Horizontal::Center),
+                    scrollable(profiles).height(300),
                     // text("").size(18),
                 ]
                 .padding(20)
             ]
-        );
+        ).align_x(alignment::Horizontal::Left);
 
 
         container(
             column![
-                main_content,
-                row![
-                    button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
-                    button("Sample Text"),
-                    button("Lorem ipsum"),
+                column![
+                    main_content,
+                ],
+                column![
+                    row![
+                        button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
+                        button("Sample Text"),
+                        button("Lorem ipsum"),
+                        text("    ").size(10)
+                    ]
+                    .spacing(10)
                 ]
-                .spacing(10)
-            ]
                 .width(900)
                 .align_x(alignment::Horizontal::Right)
+            ]
         )
             .into()
     }
