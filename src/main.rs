@@ -102,7 +102,7 @@ pub fn main() -> iced::Result {
         exit_on_close_request: true,
     };
 
-    iced::application("GMAcorn", SceneMain::update, SceneMain::view)
+    iced::application("AcornGM", SceneMain::update, SceneMain::view)
         .theme(|_| iced::Theme::GruvboxDark)
         .settings(settings)
         .window(window_settings)

@@ -1,7 +1,7 @@
 use iced::{alignment, Alignment, Color, Element};
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use crate::{GameType, Msg, SceneCreateProfile, SceneMain, SceneType};
-use crate::utility::get_default_profile_path;
+use crate::utility::{get_default_icon_image, get_default_profile_path};
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {
@@ -36,7 +36,7 @@ impl SceneMain {
             iced::widget::column![
                 column![
                     text("").size(10),
-                    text("GMAcorn").size(28).color(self.color_text1),
+                    text("AcornGM").size(28).color(self.color_text1),
                     text("").size(6),
                     text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
                     scrollable(profiles).height(100),
@@ -81,6 +81,7 @@ impl SceneMain {
                 self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
                     profile_name: "My Profile".to_string(),
                     is_profile_name_valid: true,
+                    icon: get_default_icon_image(),
                     profile_path: default_profile_path,
                     data_file_path: "".to_string(),
                     game_type: GameType::Unset,
