@@ -6,7 +6,7 @@ use crate::scenes::homepage::SceneHomePage;
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
     BackToHomepage,
-    Next,
+    StepNext,
     EditProfileName(String),
 }
 
@@ -33,7 +33,7 @@ impl SceneMain {
             Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage) => {
                 self.active_scene = SceneType::HomePage(SceneHomePage::default());
             },
-            Msg::CreateProfile1(MsgCreateProfile1::Next) => {
+            Msg::CreateProfile1(MsgCreateProfile1::StepNext) => {
                 self.active_scene = SceneType::CreateProfile2(scene.clone())
             }
             Msg::CreateProfile1(MsgCreateProfile1::EditProfileName(profile_name)) => {
@@ -81,7 +81,7 @@ impl SceneMain {
                 text("                                                                  ").size(20),
                 container(
                      row![
-                        button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::Next)),
+                        button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::StepNext)),
                         text("    ").size(10),
                     ]
                 )

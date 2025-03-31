@@ -1,14 +1,14 @@
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
-use crate::{GameType, Msg, SceneMain, SceneType};
+use crate::{Msg, SceneMain, SceneType};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
-use crate::SceneType::CreateProfile1;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile2 {
     BackToHomepage,
-    Next,
+    StepBack,
+    StepNext,
     EditDataPath(String),
 }
 
@@ -25,6 +25,9 @@ impl SceneMain {
         match message {
             Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage) => {
                 self.active_scene = SceneType::HomePage(SceneHomePage::default());
+            },
+            Msg::CreateProfile2(MsgCreateProfile2::StepBack) => {
+                self.active_scene = SceneType::CreateProfile1(scene.clone());
             },
             // Msg::CreateProfile2(MsgCreateProfile2::Next) => {
             //     self.active_scene = SceneType::CreateProfile3(scene_create_profile.clone())
@@ -66,16 +69,19 @@ impl SceneMain {
                 container(
                     row![
                         text("    ").size(10),
+                        button("< Back").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepBack)),
                         button("Cancel").on_press(Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage)),
                     ]
+                    .spacing(10)
                 )
                 .align_x(alignment::Horizontal::Right),
                 text("                                                                  ").size(20),
                 container(
                      row![
-                        button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::Next)),
+                        button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepNext)),
                         text("    ").size(10),
                     ]
+                    .spacing(10)
                 )
                 .align_x(alignment::Horizontal::Left)
             ]
