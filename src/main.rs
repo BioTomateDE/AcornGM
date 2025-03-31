@@ -1,7 +1,7 @@
 mod scenes;
 mod utility;
 
-use iced::{Element, Font, Pixels, Size};
+use iced::{Color, Element, Font, Pixels, Size};
 use crate::scenes::create_profile::{MsgCreateProfile, SceneCreateProfile};
 use crate::scenes::homepage::{MsgHomePage, SceneHomePage};
 use iced::Settings;
@@ -13,21 +13,30 @@ enum Msg {
 }
 
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 struct SceneMain {
     active_scene: SceneType,
+    color_text1: Color,
+    color_text2: Color,
+}
+impl Default for SceneMain {
+    fn default() -> Self {
+        SceneMain {
+            active_scene: SceneType::default(),
+            color_text1: Color::from_rgb8(231, 227, 213),
+            color_text2: Color::from_rgb8(147, 146, 145),
+        }
+    }
 }
 
 impl SceneMain {
     fn update(&mut self, message: Msg) {
         let mut scene = std::mem::take(&mut self.active_scene); // Take ownership of `self.active_scene`
 
-        match &mut scene {
+        self.active_scene = match &mut scene {
             SceneType::HomePage(scene) => self.update_homepage(scene, message),
             SceneType::CreateProfile(scene) => self.update_create_profile(scene, message),
         }
-
-        self.active_scene = scene; // Put the scene back
     }
 
     fn view(&self) -> Element<Msg> {
@@ -76,7 +85,7 @@ pub fn main() -> iced::Result {
         min_size: Some(Size{ width: 300.0, height: 300.0 }),
         max_size: None,
         visible: true,
-        resizable: true,
+        resizable: false,
         decorations: true,
         transparent: false,
         level: iced::window::Level::Normal,

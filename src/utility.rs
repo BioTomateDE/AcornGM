@@ -17,13 +17,3 @@ pub fn get_default_profile_path() -> Result<String, String> {
     // whoami::devicename(), whoami::platform(), whoami::realname(), whoami::distro());
 }
 
-
-
-// fn view_profiles(profiles: &[Profile]) -> Element<Message> {
-//     container(
-//         column(
-//             profiles.iter().map(|i| i.view())
-//         )
-//     ).into()
-// }
-

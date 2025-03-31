@@ -26,9 +26,6 @@ impl Default for SceneHomePage {
 
 impl SceneMain {
     pub fn view_homepage<'a>(&self, scene_homepage: &'a SceneHomePage) -> Element<'a, Msg> {
-        let color_text1: Color = Color::from_rgb8(231, 227, 213);
-        let color_text2: Color = Color::from_rgb8(147, 146, 145);
-
         let profiles: Column<Msg> = column(
             scene_homepage.profiles.iter().map(
                 |i| i.view()
@@ -39,39 +36,43 @@ impl SceneMain {
             iced::widget::column![
                 column![
                     text("").size(10),
-                    text("GMAcorn").size(28).color(color_text1),
+                    text("GMAcorn").size(28).color(self.color_text1),
                     text("").size(6),
-                    text("Recent Profiles").size(12).color(color_text2).align_x(alignment::Horizontal::Center),
-                    scrollable(profiles).height(300),
+                    text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
+                    scrollable(profiles).height(100),
                     // text("").size(18),
                 ]
                 .padding(20)
             ]
         ).align_x(alignment::Horizontal::Left);
 
+        let button_bar = container(
+            row![
+                button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
+                button("Sample Text"),
+                button("Lorem ipsum"),
+                text("    ").size(10)
+            ]
+                .spacing(10)
+        )
+            .width(900)
+            .align_x(alignment::Horizontal::Right);
 
         container(
             column![
                 column![
                     main_content,
-                ],
-                column![
-                    row![
-                        button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
-                        button("Sample Text"),
-                        button("Lorem ipsum"),
-                        text("    ").size(10)
-                    ]
-                    .spacing(10)
                 ]
-                .width(900)
-                .align_x(alignment::Horizontal::Right)
+                .height(460),
+                button_bar
             ]
         )
             .into()
     }
 
-    pub fn update_homepage(&mut self, _scene_homepage: &SceneHomePage, message: Msg) {
+    pub fn update_homepage(&mut self, _scene_homepage: &SceneHomePage, message: Msg) -> SceneType {
+        let mut scene: SceneType = std::mem::take(&mut self.active_scene);
+
         match message {
             Msg::HomePage(MsgHomePage::CreateProfile) => {
                 let default_profile_path: String = get_default_profile_path().unwrap_or_else(|error| {
@@ -79,15 +80,17 @@ impl SceneMain {
                     "".to_string()
                 });
 
-                self.active_scene = SceneType::CreateProfile(SceneCreateProfile {
+                scene = SceneType::CreateProfile(SceneCreateProfile {
                     profile_name: "Profile Name".to_string(),
                     profile_path: default_profile_path,
                     data_file_path: "".to_string(),
                     game_type: GameType::Unset,
-                })
+                });
             },
             _ => {},
         }
+
+        scene
     }
 }
 
