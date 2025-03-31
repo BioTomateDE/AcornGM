@@ -70,9 +70,7 @@ impl SceneMain {
             .into()
     }
 
-    pub fn update_homepage(&mut self, _scene_homepage: &SceneHomePage, message: Msg) -> SceneType {
-        let mut scene: SceneType = std::mem::take(&mut self.active_scene);
-
+    pub fn update_homepage(&mut self, message: Msg) {
         match message {
             Msg::HomePage(MsgHomePage::CreateProfile) => {
                 let default_profile_path: String = get_default_profile_path().unwrap_or_else(|error| {
@@ -80,8 +78,9 @@ impl SceneMain {
                     "".to_string()
                 });
 
-                scene = SceneType::CreateProfile(SceneCreateProfile {
-                    profile_name: "Profile Name".to_string(),
+                self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
+                    profile_name: "My Profile".to_string(),
+                    is_profile_name_valid: true,
                     profile_path: default_profile_path,
                     data_file_path: "".to_string(),
                     game_type: GameType::Unset,
@@ -89,8 +88,6 @@ impl SceneMain {
             },
             _ => {},
         }
-
-        scene
     }
 }
 

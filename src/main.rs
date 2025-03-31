@@ -2,14 +2,16 @@ mod scenes;
 mod utility;
 
 use iced::{Color, Element, Font, Pixels, Size};
-use crate::scenes::create_profile::{MsgCreateProfile, SceneCreateProfile};
+use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};
 use crate::scenes::homepage::{MsgHomePage, SceneHomePage};
 use iced::Settings;
+use crate::scenes::create_profile2::MsgCreateProfile2;
 
 #[derive(Debug, Clone)]
 enum Msg {
     HomePage(MsgHomePage),
-    CreateProfile(MsgCreateProfile),
+    CreateProfile1(MsgCreateProfile1),
+    CreateProfile2(MsgCreateProfile2),
 }
 
 
@@ -18,6 +20,7 @@ struct SceneMain {
     active_scene: SceneType,
     color_text1: Color,
     color_text2: Color,
+    color_text_red: Color,
 }
 impl Default for SceneMain {
     fn default() -> Self {
@@ -25,24 +28,25 @@ impl Default for SceneMain {
             active_scene: SceneType::default(),
             color_text1: Color::from_rgb8(231, 227, 213),
             color_text2: Color::from_rgb8(147, 146, 145),
+            color_text_red: Color::from_rgb8(237, 49, 31),
         }
     }
 }
 
 impl SceneMain {
     fn update(&mut self, message: Msg) {
-        let mut scene = std::mem::take(&mut self.active_scene); // Take ownership of `self.active_scene`
-
-        self.active_scene = match &mut scene {
-            SceneType::HomePage(scene) => self.update_homepage(scene, message),
-            SceneType::CreateProfile(scene) => self.update_create_profile(scene, message),
+        match &self.active_scene {
+            SceneType::HomePage(_) => self.update_homepage(message),
+            SceneType::CreateProfile1(_) => self.update_create_profile1(message),
+            SceneType::CreateProfile2(_) => self.update_create_profile2(message),
         }
     }
 
     fn view(&self) -> Element<Msg> {
         match &self.active_scene {
             SceneType::HomePage(scene) => self.view_homepage(scene),
-            SceneType::CreateProfile(scene) => self.view_create_profile(scene),
+            SceneType::CreateProfile1(scene) => self.view_create_profile1(scene),
+            SceneType::CreateProfile2(scene) => self.view_create_profile2(scene),
         }
     }
 }
@@ -61,7 +65,8 @@ enum GameType {
 #[derive(Debug, Clone)]
 enum SceneType {
     HomePage(SceneHomePage),
-    CreateProfile(SceneCreateProfile)
+    CreateProfile1(SceneCreateProfile),
+    CreateProfile2(SceneCreateProfile),
 }
 impl Default for SceneType {
     fn default() -> Self {
