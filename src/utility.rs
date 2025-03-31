@@ -1,4 +1,3 @@
-use std::fs;
 
 pub fn get_default_profile_path() -> Result<String, String> {
     let username: String = whoami::username();

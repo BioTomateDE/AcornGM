@@ -1,4 +1,4 @@
-use iced::{alignment, Alignment, Color, Element};
+use iced::{alignment, Element};
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use crate::{GameType, Msg, SceneCreateProfile, SceneMain, SceneType};
 use crate::utility::{get_default_icon_image, get_default_profile_path};

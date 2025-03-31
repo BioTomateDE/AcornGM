@@ -4,7 +4,6 @@ use crate::{GameType, Msg, SceneMain, SceneType};
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{get_current_working_directory, get_default_image_prompt_path, img_to_iced};
 use image;
-use image::GenericImageView;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
