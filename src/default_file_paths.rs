@@ -55,8 +55,9 @@ pub fn get_default_data_file_dir() -> Result<PathBuf, String> {
 }
 
 
+static FAIL_STR: &'static str = "Everything that could've gone wrong, did go wrong. Consider getting an operating system that people actually use.";
+
 pub fn get_home_directory() -> PathBuf {
-    static FAIL_STR: &'static str = "Everything that could've gone wrong, did go wrong. Consider getting an operating system that people actually use.";
     
     // try to find path in environment variables
     match get_env_var() {
@@ -70,7 +71,7 @@ pub fn get_home_directory() -> PathBuf {
     };
     
     // if not found, use default profile dir
-    let mut error_msg: String = "".to_string();
+    let mut error_msg: String;
     println!("Environment Variable for Profiles Directory (ACORNGM_HOME) doesn't exist; trying to create it...");
     match get_default_profile_directory() {
         Ok(string) => {
@@ -85,16 +86,12 @@ pub fn get_home_directory() -> PathBuf {
     }
 
     // if failed, prompt profile dir
-    dialog::Message::new(
-        &format!(
-            "Failed to find AcornGM profile folder: \"{error_msg}\"\
-            \nPlease enter it manually.\
-            \n\nIf this is a reoccurring issue, the program cannot set the environment variable \
-            correctly and your operating system might be unsupported (open a ticket on GitHub).")
-    )
-        .title("Set AcornGM Profiles Directory")
-        .show()
-        .expect(FAIL_STR);
+    show_msgbox("Set AcornGM Profiles Directory", &format!(
+        "Failed to find AcornGM profile folder: \"{error_msg}\"\
+        \nPlease enter it manually.\
+        \n\nIf this is a reoccurring issue, the program cannot set the environment variable \
+        correctly and your operating system might be unsupported (open a ticket on GitHub)."
+    ));
 
     loop {
         let string: Option<String> = dialog::Input::new("Enter your preferred Profiles Directory: ")
@@ -107,10 +104,7 @@ pub fn get_home_directory() -> PathBuf {
             Some(string) => {
                 let path = PathBuf::from(string.clone());
                 if !path.is_dir() {
-                    dialog::Message::new("Your specified directory doesn't exist!")
-                        .title("Invalid Directory")
-                        .show()
-                        .expect(FAIL_STR);
+                    show_msgbox("Invalid Directory", "Your specified directory doesn't exist!");
                     continue
                 }
 
@@ -136,3 +130,16 @@ fn get_env_var() -> Option<String> {
         Err(_) => None
     }
 }
+
+
+pub fn show_msgbox(title: &str, message: &str) {
+    let message_box = dialog::Message::new(message)
+        .title(title)
+        .show();
+
+    match message_box {
+        Ok(_) => {},
+        Err(error) => println!("Failed to show message box: {error}")
+    }
+}
+

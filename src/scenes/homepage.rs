@@ -105,8 +105,8 @@ pub enum ProfilesLoadingState {
 
 #[derive(Default, Debug, Clone)]
 struct Profile {
-    name: String,
-    id: i32
+    pub name: String,
+    pub id: i32
 }
 
 impl Profile {

@@ -1,9 +1,10 @@
+use std::fs;
 use std::path::PathBuf;
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use sha256;
 use crate::{Msg, SceneMain, SceneType};
-use crate::default_file_paths::{get_default_data_file_dir, get_default_profile_directory, get_home_directory};
+use crate::default_file_paths::{get_default_data_file_dir, get_home_directory, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{GameInfo, GameType};
@@ -46,7 +47,58 @@ impl SceneMain {
                     _ => {}
                 }
 
-                // let profile_dir: PathBuf = get_home_directory();
+                let home: PathBuf = get_home_directory();
+                let profile_name: String = make_profile_dir_name_valid(&scene.profile_name);
+                let profile_dir: PathBuf = home.join(format!("./Profiles/{}", profile_name));
+
+                // create config file
+                let config_file: PathBuf = profile_dir.join("./profile.json");
+                let date: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
+                let date: String = date.to_string();
+                let game_name: String = match &scene.game_info.game_type {
+                    GameType::Undertale => "Undertale".to_string(),
+                    GameType::Deltarune => "Deltarune".to_string(),
+                    GameType::Other(name) => name.clone(),
+                    GameType::Unset => return,
+                };
+
+                let config: serde_json::Value = serde_json::json!({
+                    "displayName": scene.profile_name,
+                    "dateCreated": date,
+                    "gameName": game_name,
+                    "gameVersion": scene.game_info.version,
+                    "allMods": [],
+                    "activeMods": [],
+                });
+                let config: String = config.to_string();
+
+                match fs::write(config_file, config) {
+                    Ok(_) => {},
+                    Err(error) => show_msgbox(
+                        "Error creating AcornGM profile",
+                        &format!("Could not create profile config file: {error}"
+                        ))
+                };
+
+                // create icon file
+                let icon_file: PathBuf = profile_dir.join("./icon.png");
+                match scene.icon.save(icon_file) {
+                    Ok(_) => {},
+                    Err(error) => show_msgbox(
+                        "Error creating AcornGM profile",
+                        &format!("Could not create profile icon file: {error}"
+                        ))
+                };
+
+                // copy data win
+                let data_file: PathBuf = profile_dir.join("./data.win");
+                match fs::copy(&scene.profile_path, data_file) {
+                    Ok(_) => {},
+                    Err(error) => show_msgbox(
+                        "Error creating AcornGM profile",
+                        &format!("Could not copy data file: {error}"
+                        ))
+                };
 
                 // TODO replace with profile scene
                 self.active_scene = SceneType::HomePage(SceneHomePage::default());
@@ -210,7 +262,7 @@ impl SceneMain {
 
 
 fn detect_game_and_version(data_file_path: &str) -> Result<GameInfo, String> {
-    let bytes: Vec<u8> = match std::fs::read(data_file_path) {
+    let bytes: Vec<u8> = match fs::read(data_file_path) {
         Ok(bytes) => bytes,
         Err(error) => return Err(format!("Could not read data file: {error}")),
     };
@@ -258,3 +310,23 @@ pub fn check_profile_name_valid(profile_name: &str) -> bool {
         profile_name.len() < 1
 }
 
+
+fn make_profile_dir_name_valid(profile_name: &str) -> String {
+    static BANNED_CHARS: [char; 15] = ['.', '/', '\\', '\n', '\r', '\t', '<', '>', ':', '"', '\'', '|', '?', '*', ' '];
+    static BANNED_NAMES: [&'static str; 22] = [
+        "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
+        "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"];
+
+    let mut name: String = String::with_capacity(profile_name.len());
+
+    for char in profile_name.chars() {
+        if !BANNED_CHARS.contains(&char) {
+            name.push(char);
+        }
+    }
+
+    if name.len() < 1 || name.ends_with('.') || BANNED_NAMES.contains(&name.as_str()) {
+        name = uuid::Uuid::new_v4().hyphenated().to_string();
+    }
+    name
+}
