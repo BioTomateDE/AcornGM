@@ -92,7 +92,7 @@ impl SceneMain {
 
         let profile_name_valid = text(
             if scene_create_profile.is_profile_name_valid {""} else {"Invalid Profile Name"}
-        ).size(12).color(self.color_text_red);
+        ).size(12).style(self.color_text_red);
 
         // scene.icon.write_to()
         // let icon = iced::widget::image::Handle::from_rgba(scene.icon.width(), scene.icon.height(), scene.icon.);
@@ -102,11 +102,9 @@ impl SceneMain {
         let main_content = container(
             iced::widget::column![
                 column![
-                    // text("").size(10),
-                    text("Create New Profile").size(22).color(self.color_text1),
+                    text("Create New Profile").size(22).style(self.color_text1),
                     text("").size(10),
-                    // text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
-                    text("Profile Name").size(14).color(self.color_text2),
+                    text("Profile Name").size(14).style(self.color_text2),
                     text("").size(4),
                     TextInput::new(
                         "My Profile",
@@ -115,7 +113,7 @@ impl SceneMain {
                     text("").size(4),
                     profile_name_valid,
                     text("").size(10),
-                    text("Profile Icon").size(14).color(self.color_text2),
+                    text("Profile Icon").size(14).style(self.color_text2),
                     text("").size(4),
                     button(icon.height(100)).on_press(Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon)),
                     // button(iced::widget::image(scene.icon).height(100)).on_press(Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon)),

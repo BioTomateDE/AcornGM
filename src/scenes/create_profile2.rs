@@ -72,10 +72,10 @@ impl SceneMain {
                 let config: serde_json::Value = serde_json::json!({
                     "displayName": scene.profile_name,
                     "dateCreated": date,
+                    "lastUsed": date,
                     "gameName": game_name,
                     "gameVersion": scene.game_info.version,
-                    "allMods": [],
-                    "activeMods": [],
+                    "mods": [],
                 });
                 let config: String = serde_json::to_string_pretty(&config).unwrap();
 
@@ -171,11 +171,9 @@ impl SceneMain {
         let main_content = container(
             iced::widget::column![
                 column![
-                    // text("").size(10),
-                    text("Create New Profile").size(22).color(self.color_text1),
+                    text("Create New Profile").size(22).style(self.color_text1),
                     text("").size(10),
-                    // text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
-                    text("GameMaker Data File").size(14).color(self.color_text2),
+                    text("GameMaker Data File").size(14).style(self.color_text2),
                     text("").size(4),
                     row![
                         TextInput::new(
@@ -189,13 +187,13 @@ impl SceneMain {
                     text("").size(16),
                     row![
                         column![
-                            text("Game Name").size(14).color(self.color_text2),
+                            text("Game Name").size(14).style(self.color_text2),
                             text("").size(4),
                             TextInput::new("Game", &scene.game_name)
                                 .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditGameName(string)))
                         ],
                         column![
-                            text("Game Version").size(14).color(self.color_text2),
+                            text("Game Version").size(14).style(self.color_text2),
                             text("").size(4),
                             TextInput::new("Version", &scene.game_info.version)
                                 .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(string))),

@@ -1,3 +1,5 @@
+use iced::widget::image::Handle;
+
 pub fn get_current_working_directory() -> Option<String> {
     match std::env::current_dir() {
         Ok(path) => match path.to_str() {
@@ -38,14 +40,14 @@ pub fn get_default_icon_image() -> image::DynamicImage {
 }
 
 
-pub fn img_to_iced(img: &image::DynamicImage) -> iced::widget::image::Image {
+pub fn img_to_iced(img: &image::DynamicImage) -> iced::widget::image::Image<Handle> {
     let mut buf = std::io::Cursor::new(Vec::new());
 
     // Encode the image to PNG format in memory
     img.write_to(&mut buf, image::ImageOutputFormat::Png).unwrap();
 
     // Create an Iced `Handle` from memory bytes
-    let handle = iced::widget::image::Handle::from_bytes(buf.into_inner());
+    let handle = iced::widget::image::Handle::from_memory(buf.into_inner());
     iced::widget::image::Image::new(handle)
 }
 

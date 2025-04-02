@@ -2,7 +2,7 @@ mod scenes;
 mod utility;
 mod default_file_paths;
 
-use iced::{Color, Element, Font, Pixels, Size};
+use iced::{Color, Element, Font, Pixels, Sandbox, Size};
 use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};
 use crate::scenes::homepage::{MsgHomePage, SceneHomePage};
 use iced::Settings;
@@ -52,6 +52,30 @@ impl SceneMain {
     }
 }
 
+#[derive(Debug, Clone)]
+struct MyApp {
+    scene_main: SceneMain,
+}
+
+impl Sandbox for MyApp {
+    type Message = Msg;
+    fn new() -> Self {
+        Self { scene_main: Default::default() }
+    }
+    fn title(&self) -> String {
+        "AcornGM".to_string()
+    }
+    fn theme(&self) -> iced::Theme {
+        iced::Theme::GruvboxDark
+    }
+    fn update(&mut self, message: Self::Message) {
+        self.scene_main.update(message)
+    }
+    fn view(&self) -> iced::Element<Self::Message> {
+        self.scene_main.view()
+    }
+}
+
 
 #[derive(Debug, Clone)]
 enum SceneType {
@@ -67,14 +91,6 @@ impl Default for SceneType {
 
 
 pub fn main() -> iced::Result {
-    let settings = Settings {
-        id: Some("ts id pmo".to_string()),
-        fonts: vec![],
-        default_font: Font::DEFAULT,
-        default_text_size: Pixels(14.0),
-        antialiasing: true,
-    };
-
     let window_settings = iced::window::Settings {
         size: Size{ width: 500.0, height: 500.0 },
         position: iced::window::Position::Centered,
@@ -87,17 +103,21 @@ pub fn main() -> iced::Result {
         level: iced::window::Level::Normal,
         icon: None,     // TODO
         platform_specific: iced::window::settings::PlatformSpecific {
-            application_id: "idk what this application id is supposed to be".to_string(),
-            override_redirect: false,
+            application_id: "AcornGM".to_string(),
         },
         exit_on_close_request: true,
     };
 
-    iced::application("AcornGM", SceneMain::update, SceneMain::view)
-        .theme(|_| iced::Theme::GruvboxDark)
-        .settings(settings)
-        .window(window_settings)
-        .run()
+    let settings = Settings {
+        id: Some("ts id pmo".to_string()),
+        window: window_settings,
+        flags: (),
+        fonts: vec![],
+        default_font: Font::DEFAULT,
+        default_text_size: Pixels(14.0),
+        antialiasing: true,
+    };
 
+    MyApp::run(settings)
 }
 
