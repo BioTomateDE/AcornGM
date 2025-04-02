@@ -1,6 +1,8 @@
+use std::path::PathBuf;
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use crate::{Msg, SceneMain, SceneType};
+use crate::default_file_paths::get_default_data_file_dir;
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
 
@@ -10,6 +12,7 @@ pub enum MsgCreateProfile2 {
     StepBack,
     StepNext,
     EditDataPath(String),
+    PickDataPath,
 }
 
 impl SceneMain {
@@ -32,8 +35,33 @@ impl SceneMain {
             // Msg::CreateProfile2(MsgCreateProfile2::Next) => {
             //     self.active_scene = SceneType::CreateProfile3(scene_create_profile.clone())
             // }
-            Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(profile_name)) => {
-                scene.is_profile_name_valid = check_profile_name_valid(&profile_name)
+            Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(data_file_path)) => {
+                scene.data_file_path = data_file_path;
+            }
+            Msg::CreateProfile2(MsgCreateProfile2::PickDataPath) => {
+                let default_data_dir: PathBuf = match get_default_data_file_dir() {
+                    Ok(path) => path,
+                    Err(error) => {
+                        println!("[WARN @ create_profile2::update]  Could not get default data file path: {error}"); return;
+                    }
+                };
+                let data_path = native_dialog::FileDialog::new()
+                    .set_location(&default_data_dir)
+                    .add_filter("GameMaker Data File", &["win", "unx"])
+                    .show_open_single_file();
+                let data_path = match data_path {
+                    Ok(p) => p,
+                    Err(error) => { println!("[WARN @ create_profile2::update]  Could not get path from file picker: {}", error); return; }
+                };
+                let data_path: PathBuf = match data_path {
+                    Some(p) => p,
+                    None => { println!("[WARN @ create_profile2::update]  Path from file picker is empty"); return; }
+                };
+                let data_path: &str = match data_path.to_str() {
+                    Some(p) => p,
+                    None => { println!("[WARN @ create_profile2::update]  Could not convert data path to string"); return; }
+                };
+                scene.data_file_path = data_path.to_string();
             }
             _ => {},
         }
@@ -53,10 +81,13 @@ impl SceneMain {
                     // text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
                     text("GameMaker Data File").size(14).color(self.color_text2),
                     text("").size(10),
-                    TextInput::new(
-                        "/path/to/data.win",
-                        &scene_create_profile.data_file_path
-                    ).on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(string))),
+                    row![
+                        TextInput::new(
+                            "/path/to/data.win",
+                            &scene_create_profile.data_file_path
+                        ).on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(string))),
+                        button("Pick File").on_press(Msg::CreateProfile2(MsgCreateProfile2::PickDataPath)),
+                    ].spacing(10),
                     text("").size(4),
                     // data_path_valid,
                 ]

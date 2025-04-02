@@ -1,7 +1,8 @@
 use iced::{alignment, Element};
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use crate::{GameType, Msg, SceneCreateProfile, SceneMain, SceneType};
-use crate::utility::{get_default_icon_image, get_default_profile_path};
+use crate::default_file_paths::get_default_profile_path;
+use crate::utility::{get_default_icon_image};
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {

@@ -2,8 +2,9 @@ use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use crate::{GameType, Msg, SceneMain, SceneType};
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{get_current_working_directory, get_default_image_prompt_path, img_to_iced};
+use crate::utility::{get_current_working_directory, img_to_iced};
 use image;
+use crate::default_file_paths::get_default_image_prompt_path;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
@@ -55,14 +56,14 @@ impl SceneMain {
                     .add_filter("PNG Image", &["png"])
                     .add_filter("JPEG Image", &["jpg", "jpeg"])
                     .show_open_single_file();
-                let image_path = image_path.unwrap_or_else(|error| {
-                    println!("[WARN @ SceneMain::update_create_profile1]  Could not get path from file picker: {}", error);
-                    None
-                });
-                let image_path = image_path.unwrap_or_else(|| {
-                    println!("[WARN @ SceneMain::update_create_profile1]  Path from file picker is empty");
-                    return Default::default();
-                });
+                let image_path = match image_path {
+                    Ok(ok) => ok,
+                    Err(error) => { println!("[WARN @ SceneMain::update_create_profile1]  Could not get path from file picker: {}", error); return; }
+                };
+                let image_path = match image_path {
+                    Some(ok) => ok,
+                    None => { println!("[WARN @ SceneMain::update_create_profile1]  Path from file picker is empty"); return;}
+                };
 
                 let img = match image::open(image_path) {
                     Ok(img) => img,
