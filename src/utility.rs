@@ -54,7 +54,7 @@ fn try_get_default_icon_image() -> Result<image::DynamicImage, ()> {
         Some(cwd) => cwd,
         None => return Err(()),
     };
-    let path = std::path::Path::new(&cwd).join("/resources/default_profile_icon.png");
+    let path = std::path::Path::new(&cwd).join("./resources/default_profile_icon.png");
 
     let img = match image::open(path) {
         Ok(raw) => raw,
