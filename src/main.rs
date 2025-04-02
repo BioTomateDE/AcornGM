@@ -53,16 +53,6 @@ impl SceneMain {
 }
 
 
-#[derive(Default, Debug, Clone)]
-enum GameType {
-    #[default]
-    Unset,
-    Undertale,
-    Deltarune,
-    Other,
-}
-
-
 #[derive(Debug, Clone)]
 enum SceneType {
     HomePage(SceneHomePage),

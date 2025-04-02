@@ -1,8 +1,8 @@
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
-use crate::{GameType, Msg, SceneMain, SceneType};
+use crate::{Msg, SceneMain, SceneType};
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{get_current_working_directory, img_to_iced};
+use crate::utility::{get_current_working_directory, img_to_iced, GameInfo};
 use image;
 use crate::default_file_paths::get_default_image_prompt_path;
 
@@ -21,7 +21,8 @@ pub struct SceneCreateProfile {
     pub icon: image::DynamicImage,
     pub profile_path: String,
     pub data_file_path: String,
-    pub game_type: GameType,
+    pub game_info: GameInfo,
+    pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
 }
 
 impl SceneMain {
@@ -39,7 +40,9 @@ impl SceneMain {
                 self.active_scene = SceneType::HomePage(SceneHomePage::default());
             },
             Msg::CreateProfile1(MsgCreateProfile1::StepNext) => {
-                self.active_scene = SceneType::CreateProfile2(scene.clone())
+                if scene.is_profile_name_valid {
+                    self.active_scene = SceneType::CreateProfile2(scene.clone())
+                }
             }
             Msg::CreateProfile1(MsgCreateProfile1::EditProfileName(profile_name)) => {
                 scene.is_profile_name_valid = check_profile_name_valid(&profile_name);
@@ -74,7 +77,7 @@ impl SceneMain {
                 };
                 scene.icon = img;
 
-            }
+            },
             _ => {},
         }
     }
@@ -105,9 +108,9 @@ impl SceneMain {
                     text("").size(10),
                     // text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
                     text("Profile Name").size(14).color(self.color_text2),
-                    text("").size(10),
+                    text("").size(4),
                     TextInput::new(
-                        &scene_create_profile.profile_name,
+                        "My Profile",
                         &scene_create_profile.profile_name
                     ).on_input(|string| Msg::CreateProfile1(MsgCreateProfile1::EditProfileName(string))),
                     text("").size(4),
@@ -129,6 +132,7 @@ impl SceneMain {
                         text("    ").size(10),
                         button("Cancel").on_press(Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage)),
                     ]
+                    .spacing(10)
                 )
                 .align_x(alignment::Horizontal::Right),
                 text("                                                                  ").size(20),
@@ -137,6 +141,7 @@ impl SceneMain {
                         button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::StepNext)),
                         text("    ").size(10),
                     ]
+                    .spacing(10)
                 )
                 .align_x(alignment::Horizontal::Left)
             ]

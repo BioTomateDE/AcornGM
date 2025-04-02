@@ -1,10 +1,12 @@
 use std::path::PathBuf;
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
+use sha256;
 use crate::{Msg, SceneMain, SceneType};
-use crate::default_file_paths::get_default_data_file_dir;
+use crate::default_file_paths::{get_default_data_file_dir, get_default_profile_directory, get_home_directory};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
+use crate::utility::{GameInfo, GameType};
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile2 {
@@ -12,7 +14,10 @@ pub enum MsgCreateProfile2 {
     StepBack,
     StepNext,
     EditDataPath(String),
+    SubmitDataPath,
     PickDataPath,
+    EditGameName(String),
+    EditGameVersion(String),
 }
 
 impl SceneMain {
@@ -29,15 +34,32 @@ impl SceneMain {
             Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage) => {
                 self.active_scene = SceneType::HomePage(SceneHomePage::default());
             },
+
             Msg::CreateProfile2(MsgCreateProfile2::StepBack) => {
                 self.active_scene = SceneType::CreateProfile1(scene.clone());
             },
-            // Msg::CreateProfile2(MsgCreateProfile2::Next) => {
-            //     self.active_scene = SceneType::CreateProfile3(scene_create_profile.clone())
-            // }
+
+            Msg::CreateProfile2(MsgCreateProfile2::StepNext) => {
+                if !scene.is_profile_name_valid { return }
+                match scene.game_info.game_type {
+                    GameType::Unset => return,
+                    _ => {}
+                }
+
+                // let profile_dir: PathBuf = get_home_directory();
+
+                // TODO replace with profile scene
+                self.active_scene = SceneType::HomePage(SceneHomePage::default());
+            }
+
             Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(data_file_path)) => {
                 scene.data_file_path = data_file_path;
-            }
+            },
+
+            Msg::CreateProfile2(MsgCreateProfile2::SubmitDataPath) => {
+                self.detect_game();
+            },
+
             Msg::CreateProfile2(MsgCreateProfile2::PickDataPath) => {
                 let default_data_dir: PathBuf = match get_default_data_file_dir() {
                     Ok(path) => path,
@@ -62,16 +84,31 @@ impl SceneMain {
                     None => { println!("[WARN @ create_profile2::update]  Could not convert data path to string"); return; }
                 };
                 scene.data_file_path = data_path.to_string();
-            }
+                self.detect_game();
+            },
+
+            Msg::CreateProfile2(MsgCreateProfile2::EditGameName(name)) => {
+                match &scene.game_info.game_type {
+                    GameType::Other(_) => {
+                        scene.game_name = name.clone();
+                        scene.game_info.game_type = GameType::Other(name);
+                    },
+                    _ => {},
+                }
+            },
+
+            Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(version)) => {
+                match &scene.game_info.game_type {
+                    GameType::Other(_) => scene.game_info.version = version,
+                    _ => {},
+                }
+            },
+
             _ => {},
         }
     }
 
-    pub fn view_create_profile2(&self, scene_create_profile: &SceneCreateProfile) -> Element<Msg> {
-        // let data_path_valid = text(
-        //     if scene_create_profile.is_profile_name_valid {"Invalid Profile Name"} else {""}
-        // ).size(12).color(self.color_text_red);
-
+    pub fn view_create_profile2(&self, scene: &SceneCreateProfile) -> Element<Msg> {
         let main_content = container(
             iced::widget::column![
                 column![
@@ -80,16 +117,31 @@ impl SceneMain {
                     text("").size(10),
                     // text("Recent Profiles").size(12).color(self.color_text2).align_x(alignment::Horizontal::Center),
                     text("GameMaker Data File").size(14).color(self.color_text2),
-                    text("").size(10),
+                    text("").size(4),
                     row![
                         TextInput::new(
                             "/path/to/data.win",
-                            &scene_create_profile.data_file_path
-                        ).on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(string))),
+                            &scene.data_file_path
+                        )
+                            .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(string)))
+                            .on_submit(Msg::CreateProfile2(MsgCreateProfile2::SubmitDataPath)),
                         button("Pick File").on_press(Msg::CreateProfile2(MsgCreateProfile2::PickDataPath)),
                     ].spacing(10),
-                    text("").size(4),
-                    // data_path_valid,
+                    text("").size(16),
+                    row![
+                        column![
+                            text("Game Name").size(14).color(self.color_text2),
+                            text("").size(4),
+                            TextInput::new("Game", &scene.game_name)
+                                .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditGameName(string)))
+                        ],
+                        column![
+                            text("Game Version").size(14).color(self.color_text2),
+                            text("").size(4),
+                            TextInput::new("Version", &scene.game_info.version)
+                                .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(string))),
+                        ],
+                    ].spacing(69),
                 ]
                 .padding(20)
             ]
@@ -100,13 +152,13 @@ impl SceneMain {
                 container(
                     row![
                         text("    ").size(10),
-                        button("< Back").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepBack)),
                         button("Cancel").on_press(Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage)),
+                        button("< Back").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepBack)),
                     ]
                     .spacing(10)
                 )
                 .align_x(alignment::Horizontal::Right),
-                text("                                                                  ").size(20),
+                text("                                                    ").size(20),
                 container(
                      row![
                         button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepNext)),
@@ -130,6 +182,71 @@ impl SceneMain {
             ]
         )
             .into()
+    }
+
+    fn detect_game(&mut self) {
+        let scene: &mut SceneCreateProfile = match &mut self.active_scene {
+            SceneType::CreateProfile2(scene) => scene,
+            _ => {
+                println!("[ERROR @ create_profile2::detect_game]  Could not extract scene: {:?}", self.active_scene);
+                return;
+            }
+        };
+
+        match detect_game_and_version(&scene.data_file_path) {
+            Ok(game_info) => {
+                scene.game_name = match &game_info.game_type {
+                    GameType::Other(name) => name.clone(),
+                    GameType::Undertale => "Undertale".to_string(),
+                    GameType::Deltarune => "Deltarune".to_string(),
+                    GameType::Unset => "".to_string(),
+                };
+                scene.game_info = game_info;
+            },
+            Err(_) => {},
+        };
+    }
+}
+
+
+fn detect_game_and_version(data_file_path: &str) -> Result<GameInfo, String> {
+    let bytes: Vec<u8> = match std::fs::read(data_file_path) {
+        Ok(bytes) => bytes,
+        Err(error) => return Err(format!("Could not read data file: {error}")),
+    };
+    let hash: String = sha256::digest(bytes);
+    println!("hash: {hash}");
+
+    match hash.as_str() {
+        "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {
+            game_type: GameType::Undertale,
+            version: "1.00".to_string(),
+        }),
+        "e59b57224b33673c4d1a33d99bcb24fe915061ea3f223d652aaf159d00cbfca8" |
+        "3f85bc6204c2bf4975515e0f5283f5256e2875c81d8746db421182abd7123b08" => Ok(GameInfo {
+            game_type: GameType::Undertale,
+            version: "1.01".to_string(),
+        }),
+        "8804cabdcd91777b07f071955e4189384766203ae72d6fbaf828e1ab0948c856" => Ok(GameInfo {
+            game_type: GameType::Undertale,
+            version: "1.06".to_string(),
+        }),
+        "cd6dfa453ce9f1122cbd764921f9baa7f4289470717998a852b8f6ca8d6bb334" |
+        "b718f8223a5bb31979ffeed10be6140c857b882fc0d0462b89d6287ae38c81c7" => Ok(GameInfo {
+            game_type: GameType::Undertale,
+            version: "1.08".to_string(),
+        }),
+        "c346f0a0a1ba02ac2d2db84df5dbf31d5ae28c64d8b65b8db6af70c67c430f39" |
+        "4de4118ba4ad4243025e61337fe796532751032c0a04d0843d8b35f91ec2c220" |
+        "45e594c06dfc48c14a2918efe7eb1874876c47b23b232550f910ce0e52de540d" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: "Ch2".to_string(),
+        }),
+        _ => Ok(GameInfo {
+            game_type: GameType::Other("Other Game".to_string()),
+            version: "v1.00".to_string(),
+        })
+        // _ => Err(format!("Data file SHA-256 hash does not match any known Undertale or Deltarune data file: {hash}"))
     }
 }
 

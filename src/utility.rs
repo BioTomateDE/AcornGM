@@ -50,3 +50,19 @@ pub fn img_to_iced(img: &image::DynamicImage) -> iced::widget::image::Image {
 }
 
 
+
+#[derive(Default, Debug, Clone)]
+pub enum GameType {
+    #[default]
+    Unset,
+    Undertale,
+    Deltarune,
+    Other(String),
+}
+
+#[derive(Default, Debug, Clone)]
+pub struct GameInfo {
+    pub game_type: GameType,
+    pub version: String,
+}
+
