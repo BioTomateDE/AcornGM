@@ -19,7 +19,6 @@ pub struct SceneCreateProfile {
     pub profile_name: String,
     pub is_profile_name_valid: bool,
     pub icon: image::DynamicImage,
-    pub profile_path: String,
     pub data_file_path: String,
     pub game_info: GameInfo,
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
@@ -30,7 +29,7 @@ impl SceneMain {
         let scene: &mut SceneCreateProfile = match &mut self.active_scene {
             SceneType::CreateProfile1(scene) => scene,
             _ => {
-                println!("[ERROR @ SceneMain::update_create_profile1]  Could not extract scene: {:?}", self.active_scene);
+                println!("[ERROR @ create_profile1::update]  Could not extract scene: {:?}", self.active_scene);
                 return;
             }
         };
@@ -50,7 +49,7 @@ impl SceneMain {
             }
             Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon) => {
                 let default_origin_path: String = get_default_image_prompt_path().unwrap_or_else(|error| {
-                    println!("[WARN @ SceneMain::update_create_profile1]  Could not get default image prompt path: {error}");
+                    println!("[WARN @ create_profile1::update]  Could not get default image prompt path: {error}");
                     get_current_working_directory().unwrap_or_else(|| "".to_string())
                 });
 
@@ -61,17 +60,17 @@ impl SceneMain {
                     .show_open_single_file();
                 let image_path = match image_path {
                     Ok(ok) => ok,
-                    Err(error) => { println!("[WARN @ SceneMain::update_create_profile1]  Could not get path from file picker: {}", error); return; }
+                    Err(error) => { println!("[WARN @ create_profile1::update]  Could not get path from file picker: {}", error); return; }
                 };
                 let image_path = match image_path {
                     Some(ok) => ok,
-                    None => { println!("[WARN @ SceneMain::update_create_profile1]  Path from file picker is empty"); return;}
+                    None => { println!("[WARN @ create_profile1::update]  Path from file picker is empty"); return;}
                 };
 
                 let img = match image::open(image_path) {
                     Ok(img) => img,
                     Err(error) => {
-                        println!("[WARN @ SceneMain::update_create_profile1]  Failed to parse image: {}", error);
+                        println!("[WARN @ create_profile1::update]  Failed to parse image: {}", error);
                         return;
                     }
                 };
@@ -86,7 +85,7 @@ impl SceneMain {
         let scene: &SceneCreateProfile = match &self.active_scene {
             SceneType::CreateProfile1(scene) => scene,
             _ => {
-                println!("[ERROR @ SceneMain::update_create_profile1]  Could not extract scene: {:?}", self.active_scene);
+                println!("[ERROR @ create_profile1::update]  Could not extract scene: {:?}", self.active_scene);
                 return column![text("Error (look in logs)")].into()
             }
         };

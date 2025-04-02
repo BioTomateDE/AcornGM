@@ -1,7 +1,6 @@
 use iced::{alignment, Element};
 use iced::widget::{button, column, container, row, scrollable, text, Column};
 use crate::{Msg, SceneCreateProfile, SceneMain, SceneType};
-use crate::default_file_paths::get_default_profile_directory;
 use crate::utility::{get_default_icon_image, GameInfo};
 
 #[derive(Debug, Clone)]
@@ -74,16 +73,10 @@ impl SceneMain {
     pub fn update_homepage(&mut self, message: Msg) {
         match message {
             Msg::HomePage(MsgHomePage::CreateProfile) => {
-                let default_profile_path: String = get_default_profile_directory().unwrap_or_else(|error| {
-                    println!("[WARN]  Could not get default profile path: {error}");
-                    "".to_string()
-                });
-
                 self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
                     profile_name: "My Profile".to_string(),
                     is_profile_name_valid: true,
                     icon: get_default_icon_image(),
-                    profile_path: default_profile_path,
                     data_file_path: "".to_string(),
                     game_info: GameInfo::default(),
                     game_name: "".to_string(),

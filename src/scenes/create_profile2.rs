@@ -26,7 +26,7 @@ impl SceneMain {
         let scene: &mut SceneCreateProfile = match &mut self.active_scene {
             SceneType::CreateProfile2(scene) => scene,
             _ => {
-                println!("[ERROR @ SceneMain::update_create_profile2]  Could not extract scene: {:?}", self.active_scene);
+                println!("[ERROR @ create_profile2::update]  Could not extract scene: {:?}", self.active_scene);
                 return;
             }
         };
@@ -50,6 +50,13 @@ impl SceneMain {
                 let home: PathBuf = get_home_directory();
                 let profile_name: String = make_profile_dir_name_valid(&scene.profile_name);
                 let profile_dir: PathBuf = home.join(format!("./Profiles/{}", profile_name));
+                match fs::create_dir_all(&profile_dir) {
+                    Ok(_) => {},
+                    Err(error) => show_msgbox(
+                        "Error creating AcornGM profile",
+                        &format!("Could not create profile directory: {error}"
+                        ))
+                };
 
                 // create config file
                 let config_file: PathBuf = profile_dir.join("./profile.json");
@@ -70,7 +77,7 @@ impl SceneMain {
                     "allMods": [],
                     "activeMods": [],
                 });
-                let config: String = config.to_string();
+                let config: String = serde_json::to_string_pretty(&config).unwrap();
 
                 match fs::write(config_file, config) {
                     Ok(_) => {},
@@ -92,7 +99,7 @@ impl SceneMain {
 
                 // copy data win
                 let data_file: PathBuf = profile_dir.join("./data.win");
-                match fs::copy(&scene.profile_path, data_file) {
+                match fs::copy(&scene.data_file_path, data_file) {
                     Ok(_) => {},
                     Err(error) => show_msgbox(
                         "Error creating AcornGM profile",
