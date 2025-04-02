@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use sha256;
-use crate::{Msg, SceneMain, SceneType};
+use crate::{Msg, MyApp, SceneType};
 use crate::default_file_paths::{get_default_data_file_dir, get_home_directory, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
@@ -21,7 +21,7 @@ pub enum MsgCreateProfile2 {
     EditGameVersion(String),
 }
 
-impl SceneMain {
+impl MyApp {
     pub fn update_create_profile2(&mut self, message: Msg) {
         let scene: &mut SceneCreateProfile = match &mut self.active_scene {
             SceneType::CreateProfile2(scene) => scene,
@@ -33,7 +33,7 @@ impl SceneMain {
 
         match message {
             Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage) => {
-                self.active_scene = SceneType::HomePage(SceneHomePage::default());
+                self.active_scene = SceneType::HomePage(SceneHomePage {});
             },
 
             Msg::CreateProfile2(MsgCreateProfile2::StepBack) => {
@@ -108,7 +108,7 @@ impl SceneMain {
                 };
 
                 // TODO replace with profile scene
-                self.active_scene = SceneType::HomePage(SceneHomePage::default());
+                self.active_scene = SceneType::HomePage(SceneHomePage {});
             }
 
             Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(data_file_path)) => {
@@ -213,9 +213,8 @@ impl SceneMain {
                         button("< Back").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepBack)),
                     ]
                     .spacing(10)
-                )
-                .align_x(alignment::Horizontal::Right),
-                text("                                                    ").size(20),
+                ),
+                text("                                                        ").size(20),
                 container(
                      row![
                         button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepNext)),
@@ -223,10 +222,8 @@ impl SceneMain {
                     ]
                     .spacing(10)
                 )
-                .align_x(alignment::Horizontal::Left)
             ]
         )
-            .align_x(alignment::Horizontal::Right)
             .width(900);
 
         container(

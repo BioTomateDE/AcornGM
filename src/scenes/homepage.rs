@@ -1,45 +1,29 @@
 use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
-use iced::{alignment, Element};
-use iced::widget::{button, column, container, row, scrollable, text, Column};
-use crate::{Msg, SceneCreateProfile, SceneMain, SceneType};
+use iced::{alignment, Color, Element};
+use iced::widget::{button, column, container, row, scrollable, text, Column, Image};
+use iced::widget::container::Appearance;
+use iced::widget::image::Handle;
+use crate::{Msg, MyApp, SceneCreateProfile, SceneType};
 use crate::default_file_paths::{get_home_directory, show_msgbox};
-use crate::utility::{get_default_icon_image, GameInfo, GameType};
+use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType};
 use serde;
+use crate::scenes::view_profile::SceneViewProfile;
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {
+    ProfilesLoaded(Vec<Profile>),
     CreateProfile,
+    LoadProfile(usize),
 }
 
 
 #[derive(Debug, Clone)]
-pub struct SceneHomePage {
-    pub profiles: Vec<Profile>,
-    pub profiles_loading_state: ProfilesLoadingState,
-}
-impl Default for SceneHomePage {
-    fn default() -> Self {
-        SceneHomePage {
-            profiles: vec![],
-            profiles_loading_state: ProfilesLoadingState::NotLoaded,
-        }
-    }
-}
+pub struct SceneHomePage;
 
-
-impl SceneMain {
+impl MyApp {
     pub fn update_homepage(&mut self, message: Msg) {
-        let _scene: &mut SceneHomePage = match &mut self.active_scene {
-            SceneType::HomePage(scene) => scene,
-            _ => {
-                println!("[ERROR @ homepage::update]  Could not extract scene: {:?}", self.active_scene);
-                return;
-            }
-        };
-
-        // Task::run(load_profiles, |profiles| {scene.profiles = profiles}).await;
         match message {
             Msg::HomePage(MsgHomePage::CreateProfile) => {
                 self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
@@ -51,16 +35,23 @@ impl SceneMain {
                     game_name: "".to_string(),
                 });
             },
+            Msg::HomePage(MsgHomePage::LoadProfile(index)) => {
+                if let Some(profile) = self.profiles.get(index) {
+                    self.active_scene = SceneType::ViewProfile(SceneViewProfile {
+                        profile: profile.clone(),
+                    })
+                }
+            },
             _ => {},
         }
     }
 
-    pub fn view_homepage<'a>(&self, scene_homepage: &'a SceneHomePage) -> Element<'a, Msg> {
+    pub fn view_homepage(&self) -> Element<Msg> {
         let profiles: Column<Msg> = column(
-            scene_homepage.profiles.iter().map(
-                |i| i.view()
+            self.profiles.iter().map(
+                |i| i.view(self.color_text1, self.color_text2)
             )
-        );
+        ).spacing(15);
 
         let main_content = container(
             iced::widget::column![
@@ -69,8 +60,8 @@ impl SceneMain {
                     text("AcornGM").size(28).style(self.color_text1),
                     text("").size(6),
                     text("Recent Profiles").size(12).style(self.color_text2).horizontal_alignment(alignment::Horizontal::Center),
-                    scrollable(profiles).height(100),
-                    // text("").size(18),
+                    text("").size(10),
+                    scrollable(profiles).height(500),
                 ]
                 .padding(20)
             ]
@@ -101,17 +92,9 @@ impl SceneMain {
     }
 }
 
-
-#[derive(Default, Debug, Clone)]
-pub enum ProfilesLoadingState {
-    #[default]
-    NotLoaded,
-    CurrentlyLoading,
-    Loaded,
-}
-
 #[derive(Default, Debug, Clone)]
 pub struct Profile {
+    pub index: usize,           // index in .profiles to identify profile on press
     pub name: String,
     pub game_info: GameInfo,
     pub date_created: chrono::DateTime<chrono::Local>,
@@ -121,10 +104,84 @@ pub struct Profile {
     pub gm_data: Option<Vec<u8>>,       // not set in homepage; only on load
 }
 impl Profile {
-    fn view(&self) -> Element<Msg> {
+    fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
+        let icon: Image<Handle> = img_to_iced(&self.icon);
+        let mut active_mod_count: usize = 0;
+        for mod_ref in &self.mods {
+            if mod_ref.active {
+                active_mod_count += 1;
+            }
+        }
+
         container(
-            row![text(&self.name), text(self.last_used.to_string())]
-        ).into()
+            button(
+                column![
+                    text("").size(10),
+                    row![
+                        text("   ").size(20),
+                        icon.width(50),
+                        text("    ").size(10),
+                        column![
+                            row![
+                                text(&self.name).size(16).style(color_text1),
+                                text("      ").size(10),
+                                column![
+                                    text("").size(4),
+                                    text(self.last_used.format("%Y-%m-%d %H:%M")).size(12).style(color_text2),
+                                ],
+                            ],
+                            text("").size(6),
+                            text(format!("{}/{} Mods Loaded", active_mod_count, self.mods.len())).size(13).style(color_text1),
+                        ]
+                    ]
+                ]
+            )
+                .on_press(Msg::HomePage(MsgHomePage::LoadProfile(self.index)))
+        )
+            .style(my_background_style)
+            .width(700)
+            .style(profile_item_style)
+            .height(80)
+            .into()
+    }
+}
+
+
+fn profile_item_style(_theme: &iced::Theme) -> Appearance {
+    Appearance {
+        text_color: None,
+        background: Some(iced::Background::Color(Color::from_rgb8(31, 32, 34))),
+        border: iced::Border {
+            color: Color::from_rgb8(21, 22, 24),
+            width: 3.0,
+            radius: iced::border::Radius::from([9.9, 9.9, 9.9, 9.9]),
+        },
+        shadow: Default::default(),
+    }
+}
+
+fn my_background_style(_theme: &iced::Theme) -> Appearance {
+    Appearance {
+        text_color: None,
+        background: Some(iced::Background::Color(Color::TRANSPARENT)),
+        border: Default::default(),
+        shadow: Default::default(),
+    }
+}
+
+struct MyTransparentButton;
+
+impl iced::application::StyleSheet for MyTransparentButton {
+    type Style = iced::Theme;
+    fn appearance(&self, _style: &Self::Style) -> iced::application::Appearance {
+        iced::application::Appearance {
+            background_color: Color::TRANSPARENT,
+            text_color: Color::WHITE,
+            // text_color: None, // Keep default text color
+            // background: Some(iced::Background::Color(Color::TRANSPARENT)), // Fully transparent
+            // border: Default::default(), // No border
+            // shadow: Default::default(), // No shadow
+        }
     }
 }
 
@@ -152,7 +209,7 @@ pub struct ModReference {
 
 
 
-async fn load_profiles() -> Vec<Profile> {
+pub fn load_profiles() -> Vec<Profile> {
     let home_dir: PathBuf = get_home_directory();
     let profiles_dir: PathBuf = home_dir.join("./Profiles");
 
@@ -177,22 +234,26 @@ async fn load_profiles() -> Vec<Profile> {
 
         let path: PathBuf = path.path();
         if !path.is_dir() { continue }
-        let config_file: PathBuf = path.join("./config.json");
+        let config_file: PathBuf = path.join("./profile.json");
         let icon_file: PathBuf = path.join("./icon.png");
 
-        let config: String = match fs::read_to_string(config_file) {
+        let config: String = match fs::read_to_string(&config_file) {
             Ok(ok) => ok,
             Err(error) => {
-                show_msgbox("Error while getting profiles", &format!("Could not read config file of Profile \"{:?}\": {error}", path.to_str()));
-                return vec![];
+                show_msgbox("Error while getting profiles", &format!(
+                    "Could not read config file of Profile \"{}\": {error}", config_file.to_str().unwrap_or_else(||""),
+                ));
+                continue;
             }
         };
 
         let profile_json: ProfileJson = match serde_json::from_str(&config) {
             Ok(ok) => ok,
             Err(error) => {
-                show_msgbox("Error while getting profiles", &format!("Could not read config file of Profile \"{:?}\": {error}", path.to_str()));
-                return vec![];
+                show_msgbox("Error while getting profiles", &format!(
+                    "Could not read config file of Profile \"{:?}\": {error}", config_file.to_str().unwrap_or_else(||""),
+                ));
+                continue;
             }
         };
 
@@ -208,7 +269,7 @@ async fn load_profiles() -> Vec<Profile> {
                 show_msgbox("Error while getting profiles", &format!(
                     "Could not parse creation datetime \"{}\" of Profile \"{:?}\": {}", profile_json.date_created, path.to_str(), error,
                 ));
-                return vec![];
+                continue;
             }
         };
         let last_used: chrono::DateTime<chrono::Local> = match profile_json.date_created.parse() {
@@ -217,7 +278,7 @@ async fn load_profiles() -> Vec<Profile> {
                 show_msgbox("Error while getting profiles", &format!(
                     "Could not parse last used datetime \"{}\" of Profile \"{:?}\": {}", profile_json.last_used, path.to_str(), error,
                 ));
-                return vec![];
+                continue;
             }
         };
 
@@ -225,11 +286,12 @@ async fn load_profiles() -> Vec<Profile> {
             Ok(ok) => ok,
             Err(error) => {
                 show_msgbox("Error while getting profiles", &format!("Could not read icon file of Profile \"{:?}\": {error}", path.to_str()));
-                return vec![];
+                continue;
             }
         };
 
         profiles.push(Profile {
+            index: profiles.len(),
             name: profile_json.display_name,
             game_info,
             date_created,

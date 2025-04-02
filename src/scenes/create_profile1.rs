@@ -1,6 +1,6 @@
 use iced::{alignment, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
-use crate::{Msg, SceneMain, SceneType};
+use crate::{Msg, MyApp, SceneType};
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{get_current_working_directory, img_to_iced, GameInfo};
 use image;
@@ -24,7 +24,7 @@ pub struct SceneCreateProfile {
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
 }
 
-impl SceneMain {
+impl MyApp {
     pub fn update_create_profile1(&mut self, message: Msg) {
         let scene: &mut SceneCreateProfile = match &mut self.active_scene {
             SceneType::CreateProfile1(scene) => scene,
@@ -36,7 +36,7 @@ impl SceneMain {
 
         match message {
             Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage) => {
-                self.active_scene = SceneType::HomePage(SceneHomePage::default());
+                self.active_scene = SceneType::HomePage(SceneHomePage {});
             },
             Msg::CreateProfile1(MsgCreateProfile1::StepNext) => {
                 if scene.is_profile_name_valid {
@@ -116,7 +116,6 @@ impl SceneMain {
                     text("Profile Icon").size(14).style(self.color_text2),
                     text("").size(4),
                     button(icon.height(100)).on_press(Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon)),
-                    // button(iced::widget::image(scene.icon).height(100)).on_press(Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon)),
                 ]
                 .padding(20)
             ]
@@ -130,9 +129,8 @@ impl SceneMain {
                         button("Cancel").on_press(Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage)),
                     ]
                     .spacing(10)
-                )
-                .align_x(alignment::Horizontal::Right),
-                text("                                                                  ").size(20),
+                ),
+                text("                                                                    ").size(20),
                 container(
                      row![
                         button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::StepNext)),
@@ -140,10 +138,9 @@ impl SceneMain {
                     ]
                     .spacing(10)
                 )
-                .align_x(alignment::Horizontal::Left)
             ]
         )
-            .align_x(alignment::Horizontal::Right)
+            // .align_x(alignment::Horizontal::Right)
             .width(900);
 
         container(
