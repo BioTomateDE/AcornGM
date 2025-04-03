@@ -7,7 +7,7 @@ use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, SceneCreateProfile, SceneType};
 use crate::default_file_paths::{get_home_directory, show_msgbox};
-use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType};
+use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType, TransparentButton};
 use serde;
 use crate::scenes::view_profile::SceneViewProfile;
 
@@ -136,9 +136,9 @@ impl Profile {
                     ]
                 ]
             )
+                .style(iced::theme::Button::Custom(Box::new(TransparentButton)))
                 .on_press(Msg::HomePage(MsgHomePage::LoadProfile(self.index)))
         )
-            .style(my_background_style)
             .width(700)
             .style(profile_item_style)
             .height(80)
@@ -160,30 +160,6 @@ fn profile_item_style(_theme: &iced::Theme) -> Appearance {
     }
 }
 
-fn my_background_style(_theme: &iced::Theme) -> Appearance {
-    Appearance {
-        text_color: None,
-        background: Some(iced::Background::Color(Color::TRANSPARENT)),
-        border: Default::default(),
-        shadow: Default::default(),
-    }
-}
-
-struct MyTransparentButton;
-
-impl iced::application::StyleSheet for MyTransparentButton {
-    type Style = iced::Theme;
-    fn appearance(&self, _style: &Self::Style) -> iced::application::Appearance {
-        iced::application::Appearance {
-            background_color: Color::TRANSPARENT,
-            text_color: Color::WHITE,
-            // text_color: None, // Keep default text color
-            // background: Some(iced::Background::Color(Color::TRANSPARENT)), // Fully transparent
-            // border: Default::default(), // No border
-            // shadow: Default::default(), // No shadow
-        }
-    }
-}
 
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

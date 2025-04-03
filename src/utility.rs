@@ -1,3 +1,5 @@
+use iced::Color;
+use iced::widget::button;
 use iced::widget::image::Handle;
 
 pub fn get_current_working_directory() -> Option<String> {
@@ -66,5 +68,22 @@ pub enum GameType {
 pub struct GameInfo {
     pub game_type: GameType,
     pub version: String,
+}
+
+
+
+#[derive(Debug, Clone, Copy)]
+pub struct TransparentButton;
+impl button::StyleSheet for TransparentButton {
+    type Style = iced::Theme;
+    fn active(&self, _: &Self::Style) -> button::Appearance {
+        button::Appearance {
+            text_color: Default::default(),
+            background: Some(iced::Background::Color(Color::TRANSPARENT)),
+            border: Default::default(),
+            shadow: Default::default(),
+            shadow_offset: iced::Vector::default(),
+        }
+    }
 }
 
