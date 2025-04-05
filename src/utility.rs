@@ -87,3 +87,6 @@ impl button::StyleSheet for TransparentButton {
     }
 }
 
+
+pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com/";
+

@@ -9,6 +9,7 @@ use crate::{Msg, MyApp, SceneCreateProfile, SceneType};
 use crate::default_file_paths::{get_home_directory, show_msgbox};
 use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType, TransparentButton};
 use serde;
+use crate::scenes::login::SceneLogin;
 use crate::scenes::view_profile::SceneViewProfile;
 
 #[derive(Debug, Clone)]
@@ -16,6 +17,7 @@ pub enum MsgHomePage {
     ProfilesLoaded(Vec<Profile>),
     CreateProfile,
     LoadProfile(usize),
+    Login,
 }
 
 
@@ -35,6 +37,7 @@ impl MyApp {
                     game_name: "".to_string(),
                 });
             },
+
             Msg::HomePage(MsgHomePage::LoadProfile(index)) => {
                 if let Some(profile) = self.profiles.get(index) {
                     self.active_scene = SceneType::ViewProfile(SceneViewProfile {
@@ -42,6 +45,15 @@ impl MyApp {
                     })
                 }
             },
+
+            Msg::HomePage(MsgHomePage::Login) => {
+                self.active_scene = SceneType::Login(SceneLogin {
+                    temp_login_token: None,
+                    auth_code: None,
+                    status_string: "Idle",
+                });
+            },
+
             _ => {},
         }
     }
@@ -69,15 +81,36 @@ impl MyApp {
 
         let button_bar = container(
             row![
-                button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
-                button("Sample Text"),
-                button("Lorem ipsum"),
-                text("    ").size(10)
+                container(
+                    row![
+                        text("    ").size(10),
+                        button("Login").on_press(Msg::HomePage(MsgHomePage::Login)),
+                    ]
+                    .spacing(10)
+                ),
+                text("                                                               ").size(19),
+                container(
+                     row![
+                        button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
+                        text("    ").size(10),
+                    ]
+                    .spacing(10)
+                )
             ]
-                .spacing(10)
         )
-            .width(900)
-            .align_x(alignment::Horizontal::Right);
+            .width(900);
+
+        // let button_bar = container(
+        //     row![
+        //         button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
+        //         button("Sample Text"),
+        //         button("Lorem ipsum"),
+        //         text("    ").size(10)
+        //     ]
+        //         .spacing(10)
+        // )
+        //     .width(900)
+        //     .align_x(alignment::Horizontal::Right);
 
         container(
             column![
