@@ -76,7 +76,7 @@ pub fn get_home_directory() -> PathBuf {
     
     // if not found, use default profile dir
     let error_msg: String;
-    println!("Environment Variable for Profiles Directory (ACORNGM_HOME) not set; using default directory.");
+    // println!("Environment Variable for Profiles Directory (ACORNGM_HOME) not set; using default directory.");
     match get_default_profile_directory() {
         Ok(path) => {
             return path;

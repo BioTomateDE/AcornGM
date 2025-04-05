@@ -49,7 +49,6 @@ impl MyApp {
             Msg::HomePage(MsgHomePage::Login) => {
                 self.active_scene = SceneType::Login(SceneLogin {
                     temp_login_token: None,
-                    auth_code: None,
                     status_string: "Idle",
                 });
             },

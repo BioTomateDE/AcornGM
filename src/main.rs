@@ -6,7 +6,6 @@ use iced::{Application, Color, Font, Pixels, Sandbox, Size};
 use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use iced::Settings;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use crate::scenes::create_profile2::MsgCreateProfile2;
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
@@ -22,7 +21,7 @@ enum Msg {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum SceneType {
     HomePage(SceneHomePage),
     CreateProfile1(SceneCreateProfile),
@@ -32,48 +31,31 @@ enum SceneType {
 }
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct MyApp {
     profiles: Vec<Profile>,
     active_scene: SceneType,
     color_text1: Color,
     color_text2: Color,
     color_text_red: Color,
-    // receiver: std::cell::RefCell<Option<UnboundedReceiver<Msg>>>,
-    // sender: std::cell::RefCell<Option<UnboundedSender<Msg>>>,
-    receiver: UnboundedReceiver<Msg>,
-    sender: UnboundedSender<Msg>,
 }
 
-struct MyAppFlags {
-    receiver: UnboundedReceiver<Msg>,
-    sender: UnboundedSender<Msg>,
-}
-
-impl Application for MyApp {
-    type Executor = iced::executor::Default;
+impl Sandbox for MyApp {
     type Message = Msg;
-    type Theme = iced::Theme;
-    type Flags = MyAppFlags;
-    fn new(flags: Self::Flags) -> (MyApp, iced::Command<Msg>) {
+    fn new() -> MyApp {
         let profiles: Vec<Profile> = load_profiles();
-        let my_app = Self {
+        Self {
             profiles,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             color_text1: Color::from_rgb8(231, 227, 213),
             color_text2: Color::from_rgb8(147, 146, 145),
             color_text_red: Color::from_rgb8(237, 49, 31),
-            // receiver: std::cell::RefCell::new(Some(flags.receiver)),
-            // sender: std::cell::RefCell::new(Some(flags.sender)),
-            receiver: flags.receiver,
-            sender: flags.sender,
-        };
-        (my_app, iced::Command::none())
+        }
     }
     fn title(&self) -> String {
         "AcornGM".to_string()
     }
-    fn update(&mut self, message: Self::Message) -> iced::Command<Msg> {
+    fn update(&mut self, message: Self::Message) -> () {
         match &self.active_scene {
             SceneType::HomePage(_) => self.update_homepage(message),
             SceneType::CreateProfile1(_) => self.update_create_profile1(message),
@@ -81,7 +63,6 @@ impl Application for MyApp {
             SceneType::ViewProfile(_) => self.update_view_profile(message),
             SceneType::Login(_) => self.update_login(message),
         }
-        iced::Command::none()
     }
     fn view(&self) -> iced::Element<Self::Message> {
         match &self.active_scene {
@@ -94,16 +75,6 @@ impl Application for MyApp {
     }
     fn theme(&self) -> iced::Theme {
         iced::Theme::GruvboxDark
-    }
-    fn subscription(&self) -> iced::Subscription<Msg> {
-        iced::subscription::unfold(
-            "login thingy",
-            &self.receiver,
-            move |mut receiver| async move {
-                let msg = receiver.recv().await.unwrap();
-                (msg, receiver)
-            },
-        )
     }
 }
 
@@ -126,18 +97,16 @@ pub fn main() -> iced::Result {
         exit_on_close_request: true,
     };
 
-    let (sender, receiver): (UnboundedSender<Msg>, UnboundedReceiver<Msg>) = unbounded_channel::<Msg>();
-
-    let settings = Settings::<MyAppFlags> {
+    let settings = Settings {
         id: Some("ts id pmo".to_string()),
         window: window_settings,
-        flags: MyAppFlags { sender, receiver },
+        flags: (),
         fonts: vec![],
         default_font: Font::DEFAULT,
         default_text_size: Pixels(14.0),
         antialiasing: true,
     };
 
-    MyApp::run(settings)
+    <MyApp as Sandbox>::run(settings)
 }
 
