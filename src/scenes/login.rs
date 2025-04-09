@@ -24,12 +24,12 @@ pub struct SceneLogin {
 
 
 impl MyApp {
-    pub fn update_login(&mut self, message: Msg) {
+    pub fn update_login(&mut self, message: Msg) -> iced::Command<Msg> {
         let scene: &mut SceneLogin = match &mut self.active_scene {
             SceneType::Login(scene) => scene,
             _ => {
                 println!("[ERROR @ login::update]  Could not extract scene: {:?}", self.active_scene);
-                return;
+                return iced::Command::none();
             }
         };
 
@@ -38,13 +38,13 @@ impl MyApp {
                 let mut buf = [0u8; 64];
                 if getrandom::fill(&mut buf).is_err() {
                     show_msgbox("Error while logging in", "Could not generate temporary login token.");
-                    return;
+                    return iced::Command::none();
                 };
                 let temp_login_token: String = BASE64_URL_SAFE.encode(buf);
 
                 if webbrowser::open( &format!("{}login.html?tempLoginToken={}", BASE_URL, temp_login_token)).is_err() {
                     show_msgbox("Error while logging in", "Could not open URL to log in.");
-                    return;
+                    return iced::Command::none();
                 }
                 scene.temp_login_token = Some(temp_login_token.clone());
 
@@ -52,10 +52,12 @@ impl MyApp {
                     std::thread::spawn(move || check_callback(&temp_login_token));
                 };
                 scene.status_string = "Browser opened";
+                iced::Command::none()
             },
 
             Msg::Login(MsgLogin::BackToHomepage) => {
                 self.active_scene = SceneType::HomePage(SceneHomePage {});
+                iced::Command::none()
             },
 
             Msg::Login(MsgLogin::Next) => {
@@ -63,24 +65,25 @@ impl MyApp {
                 if !access_token_file_path.is_file() {
                     // server didn't respond yet
                     show_msgbox("Login is in process", "Login process is not done yet! Please complete it in your browser.");
-                    return;
+                    return iced::Command::none();
                 }
 
                 let access_token: String = match std::fs::read_to_string(access_token_file_path) {
                     Ok(text) => text,
                     Err(error) => {
                         show_msgbox("Error reading file", &format!("Could not read access token file: {error}"));
-                        return;
+                        return iced::Command::none();
                     },
                 };
                 let access_token: &str = access_token.trim();
                 println!("Access Token: {access_token}");
                 scene.status_string = "Success";
 
+                iced::window::resize(iced::window::Id::unique(), iced::Size {width: 900.0, height: 500.0})
                 // self.active_scene = SceneType::HomePage(SceneHomePage {});
             },
 
-            _ => {},
+            _ => iced::Command::none(),
         }
     }
 

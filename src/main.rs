@@ -2,7 +2,7 @@ mod scenes;
 mod utility;
 mod default_file_paths;
 
-use iced::{Application, Color, Font, Pixels, Sandbox, Size};
+use iced::{Application, Color, Command, Font, Pixels, Sandbox, Size};
 use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use iced::Settings;
@@ -33,6 +33,7 @@ enum SceneType {
 
 #[derive(Debug, Clone)]
 struct MyApp {
+    flags: MyAppFlags,
     profiles: Vec<Profile>,
     active_scene: SceneType,
     color_text1: Color,
@@ -40,29 +41,42 @@ struct MyApp {
     color_text_red: Color,
 }
 
-impl Sandbox for MyApp {
+#[derive(Debug, Clone)]
+struct MyAppFlags {
+    main_window_id: iced::window::Id,
+}
+
+impl Application for MyApp {
+    type Executor = iced::executor::Default;
     type Message = Msg;
-    fn new() -> MyApp {
+    type Theme = iced::Theme;
+    type Flags = MyAppFlags;
+
+    fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
         let profiles: Vec<Profile> = load_profiles();
-        Self {
+        let ts: MyApp = Self {
+            flags,
             profiles,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             color_text1: Color::from_rgb8(231, 227, 213),
             color_text2: Color::from_rgb8(147, 146, 145),
             color_text_red: Color::from_rgb8(237, 49, 31),
-        }
+        };
+        let pmo: Command<Msg> = Command::none();
+        (ts, pmo)
     }
     fn title(&self) -> String {
         "AcornGM".to_string()
     }
-    fn update(&mut self, message: Self::Message) -> () {
+    fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match &self.active_scene {
             SceneType::HomePage(_) => self.update_homepage(message),
             SceneType::CreateProfile1(_) => self.update_create_profile1(message),
             SceneType::CreateProfile2(_) => self.update_create_profile2(message),
             SceneType::ViewProfile(_) => self.update_view_profile(message),
-            SceneType::Login(_) => self.update_login(message),
+            SceneType::Login(_) => return self.update_login(message),
         }
+        Command::none()
     }
     fn view(&self) -> iced::Element<Self::Message> {
         match &self.active_scene {
@@ -80,6 +94,8 @@ impl Sandbox for MyApp {
 
 
 pub fn main() -> iced::Result {
+    let main_window_id: iced::window::Id = iced::window::Id::unique();
+
     let window_settings = iced::window::Settings {
         size: Size{ width: 500.0, height: 500.0 },
         position: iced::window::Position::Centered,
@@ -98,15 +114,15 @@ pub fn main() -> iced::Result {
     };
 
     let settings = Settings {
-        id: Some("ts id pmo".to_string()),
+        id: Some("main".to_string()),
         window: window_settings,
-        flags: (),
+        flags: MyAppFlags {main_window_id},
         fonts: vec![],
         default_font: Font::DEFAULT,
         default_text_size: Pixels(14.0),
         antialiasing: true,
     };
 
-    <MyApp as Sandbox>::run(settings)
+    MyApp::run(settings)
 }
 
