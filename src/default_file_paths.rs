@@ -62,16 +62,15 @@ pub fn get_default_data_file_dir() -> Result<PathBuf, String> {
 static FAIL_STR: &'static str = "Everything that could've gone wrong, did go wrong. Consider getting an operating system that people actually use.";
 
 pub fn get_home_directory() -> PathBuf {
-    
     // try to find path in environment variables
-    match get_env_var() {
-        Some(string) => {
+    match std::env::var("ACORNGM_HOME") {
+        Ok(string) => {
             let path = PathBuf::from(string);
             if path.is_dir() {
                 return path
             }
         },
-        None => {}
+        Err(_) => {}
     };
     
     // if not found, use default profile dir
@@ -113,24 +112,22 @@ pub fn get_home_directory() -> PathBuf {
 
 }
 
-fn get_env_var() -> Option<String> {
-    match std::env::var("ACORNGM_HOME") {
-        Ok(ok) => Some(ok),
-        Err(_) => None
-    }
-}
-
 
 pub fn show_msgbox(title: &str, message: &str) {
-    println!("Showing MsgBox: {message}");
+    let title: String = title.to_owned();
+    let message: String = message.to_owned();
 
-    let message_box = dialog::Message::new(message)
-        .title(title)
-        .show();
+    std::thread::spawn(|| {
+        println!("Showing MsgBox: {message}");
 
-    match message_box {
-        Ok(_) => {},
-        Err(error) => println!("Failed to show message box: {error}")
-    }
+        let message_box = dialog::Message::new(message)
+            .title(title)
+            .show();
+
+        match message_box {
+            Ok(_) => {},
+            Err(error) => println!("Failed to show message box: {error}")
+        }
+    });
 }
 

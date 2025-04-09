@@ -6,7 +6,7 @@ use iced::widget::{button, column, container, row, scrollable, text, Column, Ima
 use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, SceneCreateProfile, SceneType};
-use crate::default_file_paths::{get_home_directory, show_msgbox};
+use crate::default_file_paths::{show_msgbox};
 use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType, TransparentButton};
 use serde;
 use crate::scenes::login::SceneLogin;
@@ -218,8 +218,7 @@ pub struct ModReference {
 
 
 
-pub fn load_profiles() -> Vec<Profile> {
-    let home_dir: PathBuf = get_home_directory();
+pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
     let profiles_dir: PathBuf = home_dir.join("./Profiles");
 
     let paths: ReadDir = match fs::read_dir(profiles_dir) {

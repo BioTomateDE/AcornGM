@@ -2,10 +2,12 @@ mod scenes;
 mod utility;
 mod default_file_paths;
 
-use iced::{Application, Color, Command, Font, Pixels, Sandbox, Size};
+use std::path::PathBuf;
+use iced::{Application, Color, Command, Font, Pixels, Size};
 use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use iced::Settings;
+use crate::default_file_paths::get_home_directory;
 use crate::scenes::create_profile2::MsgCreateProfile2;
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
@@ -34,6 +36,7 @@ enum SceneType {
 #[derive(Debug, Clone)]
 struct MyApp {
     flags: MyAppFlags,
+    home_dir: PathBuf,
     profiles: Vec<Profile>,
     active_scene: SceneType,
     color_text1: Color,
@@ -53,9 +56,12 @@ impl Application for MyApp {
     type Flags = MyAppFlags;
 
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
-        let profiles: Vec<Profile> = load_profiles();
+        let home_dir: PathBuf = get_home_directory();
+        let profiles: Vec<Profile> = load_profiles(&home_dir);
+
         let ts: MyApp = Self {
             flags,
+            home_dir,
             profiles,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             color_text1: Color::from_rgb8(231, 227, 213),
@@ -70,13 +76,12 @@ impl Application for MyApp {
     }
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match &self.active_scene {
-            SceneType::HomePage(_) => return self.update_homepage(message),
-            SceneType::CreateProfile1(_) => return self.update_create_profile1(message),
-            SceneType::CreateProfile2(_) => return self.update_create_profile2(message),
-            SceneType::ViewProfile(_) => return self.update_view_profile(message),
-            SceneType::Login(_) => return self.update_login(message),
+            SceneType::HomePage(_) => self.update_homepage(message),
+            SceneType::CreateProfile1(_) => self.update_create_profile1(message),
+            SceneType::CreateProfile2(_) => self.update_create_profile2(message),
+            SceneType::ViewProfile(_) => self.update_view_profile(message),
+            SceneType::Login(_) => self.update_login(message),
         }
-        Command::none()
     }
     fn view(&self) -> iced::Element<Self::Message> {
         match &self.active_scene {

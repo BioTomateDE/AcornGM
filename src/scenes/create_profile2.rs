@@ -4,7 +4,7 @@ use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use sha256;
 use crate::{Msg, MyApp, SceneType};
-use crate::default_file_paths::{get_default_data_file_dir, get_home_directory, show_msgbox};
+use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{GameInfo, GameType};
@@ -47,9 +47,8 @@ impl MyApp {
                     _ => {}
                 }
 
-                let home: PathBuf = get_home_directory();
                 let profile_name: String = make_profile_dir_name_valid(&scene.profile_name);
-                let profile_dir: PathBuf = home.join(format!("./Profiles/{}", profile_name));
+                let profile_dir: PathBuf = self.home_dir.join(format!("./Profiles/{}", profile_name));
                 match fs::create_dir_all(&profile_dir) {
                     Ok(_) => {},
                     Err(error) => show_msgbox(
