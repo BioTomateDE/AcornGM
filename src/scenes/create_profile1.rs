@@ -22,6 +22,8 @@ pub struct SceneCreateProfile {
     pub data_file_path: String,
     pub game_info: GameInfo,
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
+    pub game_version_str: String,
+    pub is_game_version_valid: bool,
 }
 
 impl MyApp {

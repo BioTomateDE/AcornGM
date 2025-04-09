@@ -2,15 +2,16 @@ use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
 use iced::{alignment, Color, Command, Element};
-use iced::widget::{button, column, container, row, scrollable, text, Column, Image};
+use iced::widget::{button, column, container, row, scrollable, text, Container, Image};
 use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
-use crate::{Msg, MyApp, SceneCreateProfile, SceneType};
+use crate::{Msg, MyApp, SceneCreateProfile, SceneType, WINDOW_SIZE_VIEW_PROFILE};
 use crate::default_file_paths::{show_msgbox};
-use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType, TransparentButton};
+use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType, TransparentButton, Version};
 use serde;
+use crate::scenes::browser::ModBrowser;
 use crate::scenes::login::SceneLogin;
-use crate::scenes::view_profile::SceneViewProfile;
+use crate::scenes::view_profile::{AcornMod, SceneViewProfile};
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {
@@ -35,15 +36,33 @@ impl MyApp {
                     data_file_path: "".to_string(),
                     game_info: GameInfo::default(),
                     game_name: "".to_string(),
+                    game_version_str: "0.00".to_string(),
+                    is_game_version_valid: false,
                 });
             },
 
             Msg::HomePage(MsgHomePage::LoadProfile(index)) => {
+                // load wingdings font
                 if let Some(profile) = self.profiles.get(index) {
                     self.active_scene = SceneType::ViewProfile(SceneViewProfile {
+                        mods: vec![],
                         profile: profile.clone(),
+                        browser: ModBrowser {
+                            search_query: "".to_string(),
+                            mods: vec![],
+                            show_only_compatible: true,
+                        },
                     })
                 }
+                // let command: Command<Result<(), !>> = match get_local_font("wingdings") {
+                //     Ok(command) => command,
+                //     Err(error) => {
+                //         show_msgbox("Error while loading font", &format!("Could not load wingdings font: {error}"));
+                //         return Command::none()
+                //     }
+                // };
+                // return command
+                return iced::window::resize(self.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
             },
 
             Msg::HomePage(MsgHomePage::Login) => {
@@ -59,11 +78,15 @@ impl MyApp {
     }
 
     pub fn view_homepage(&self) -> Element<Msg> {
-        let profiles: Column<Msg> = column(
-            self.profiles.iter().map(
-                |i| i.view(self.color_text1, self.color_text2)
-            )
-        ).spacing(15);
+        let mut profiles: Vec<Element<Msg>> = Vec::new();
+        for (_i, profile) in self.profiles.iter().enumerate() {
+            profiles.push(profile.view(self.color_text1, self.color_text2));
+            // if i != self.profiles.len() - 1 {    // if not last elem, push divider
+            //     profiles.push(create_divider())
+            // }
+            profiles.push(create_divider())
+        }
+        let profiles: Container<Msg> = container(column(profiles).spacing(5)).style(list_style);
 
         let main_content = container(
             iced::widget::column![
@@ -71,8 +94,8 @@ impl MyApp {
                     text("").size(10),
                     text("AcornGM").size(28).style(self.color_text1),
                     text("").size(6),
-                    text("Recent Profiles").size(12).style(self.color_text2).horizontal_alignment(alignment::Horizontal::Center),
-                    text("").size(10),
+                    text("Recent Profiles").size(14).style(self.color_text2).horizontal_alignment(alignment::Horizontal::Center),
+                    text("").size(6),
                     scrollable(profiles).height(500),
                 ]
                 .padding(20)
@@ -99,18 +122,6 @@ impl MyApp {
             ]
         )
             .width(900);
-
-        // let button_bar = container(
-        //     row![
-        //         button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
-        //         button("Sample Text"),
-        //         button("Lorem ipsum"),
-        //         text("    ").size(10)
-        //     ]
-        //         .spacing(10)
-        // )
-        //     .width(900)
-        //     .align_x(alignment::Horizontal::Right);
 
         container(
             column![
@@ -173,21 +184,50 @@ impl Profile {
                 .on_press(Msg::HomePage(MsgHomePage::LoadProfile(self.index)))
         )
             .width(700)
-            .style(profile_item_style)
+            .style(item_style)
             .height(80)
             .into()
     }
 }
 
 
-fn profile_item_style(_theme: &iced::Theme) -> Appearance {
+fn divider_style(_theme: &iced::Theme) -> Appearance {
+    Appearance {
+        background: Some(iced::Background::Color(Color::from_rgb8(34, 33, 31))),
+        border: iced::Border {
+            color: Color::TRANSPARENT,                  // No border for divider
+            width: 0.0,                                 // No actual border width
+            radius: iced::border::Radius::from(0),  // No border radius
+        },
+        shadow: Default::default(),
+        text_color: None,
+    }
+}
+pub fn create_divider() -> Element<'static, Msg> {
+    Container::new(text(""))
+        .height(0.75)                   // Height of the divider
+        .width(iced::Length::Fill)      // Full width
+        .center_x()                     // Center horizontally
+        .style(divider_style)
+        .into()
+}
+
+pub fn item_style(_theme: &iced::Theme) -> Appearance {
     Appearance {
         text_color: None,
-        background: Some(iced::Background::Color(Color::from_rgb8(31, 32, 34))),
+        background: None,
+        border: iced::Border::default(),
+        shadow: Default::default(),
+    }
+}
+pub fn list_style(_theme: &iced::Theme) -> Appearance {
+    Appearance {
+        text_color: None,
+        background: Some(iced::Background::Color(Color::from_rgb8(47, 47, 46))),
         border: iced::Border {
-            color: Color::from_rgb8(21, 22, 24),
-            width: 3.0,
-            radius: iced::border::Radius::from([9.9, 9.9, 9.9, 9.9]),
+            color: Color::from_rgb8(34, 33, 31),
+            width: 2.0,
+            radius: iced::border::Radius::from([0.0, 0.0, 0.0, 0.0]),
         },
         shadow: Default::default(),
     }
@@ -202,7 +242,7 @@ struct ProfileJson {
     date_created: String,
     last_used: String,
     game_name: String,
-    game_version: String,
+    game_version: [u32; 2],
     mods: Vec<ModReference>,
 }
 
@@ -270,7 +310,8 @@ pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
             "Deltarune" => GameType::Deltarune,
             other => GameType::Other(other.to_string()),
         };
-        let game_info: GameInfo = GameInfo { game_type, version: profile_json.game_version };
+        let game_version = Version { major: profile_json.game_version[0], minor: profile_json.game_version[1] };
+        let game_info: GameInfo = GameInfo { game_type, version: game_version };
         let date_created: chrono::DateTime<chrono::Local> = match profile_json.date_created.parse() {
             Ok(ok) => ok,
             Err(error) => {

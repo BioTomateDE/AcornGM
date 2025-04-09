@@ -49,6 +49,10 @@ struct MyAppFlags {
     main_window_id: iced::window::Id,
 }
 
+
+const WINDOW_SIZE_NORMAL: Size = Size { width: 500.0, height: 500.0 };
+const WINDOW_SIZE_VIEW_PROFILE: Size = Size { width: 1000.0, height: 700.0 };
+
 impl Application for MyApp {
     type Executor = iced::executor::Default;
     type Message = Msg;
@@ -102,7 +106,7 @@ pub fn main() -> iced::Result {
     let main_window_id: iced::window::Id = iced::window::Id::unique();
 
     let window_settings = iced::window::Settings {
-        size: Size{ width: 500.0, height: 500.0 },
+        size: WINDOW_SIZE_NORMAL,
         position: iced::window::Position::Centered,
         min_size: Some(Size{ width: 300.0, height: 300.0 }),
         max_size: None,

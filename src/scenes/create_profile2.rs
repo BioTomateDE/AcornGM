@@ -7,7 +7,7 @@ use crate::{Msg, MyApp, SceneType};
 use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{GameInfo, GameType};
+use crate::utility::{GameInfo, GameType, Version};
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile2 {
@@ -73,7 +73,7 @@ impl MyApp {
                     "dateCreated": date,
                     "lastUsed": date,
                     "gameName": game_name,
-                    "gameVersion": scene.game_info.version,
+                    "gameVersion": [scene.game_info.version.major, scene.game_info.version.minor],
                     "mods": [],
                 });
                 let config: String = serde_json::to_string_pretty(&config).unwrap();
@@ -155,11 +155,19 @@ impl MyApp {
                 }
             },
 
-            Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(version)) => {
+            Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(version_str)) => {
+                let version: Version = match version_str.parse() {
+                    Ok(ver) => ver,
+                    Err(_) => {
+                        scene.is_game_version_valid = false;
+                        return Command::none();
+                    }
+                };
                 match &scene.game_info.game_type {
                     GameType::Other(_) => scene.game_info.version = version,
                     _ => {},
                 }
+                scene.is_game_version_valid = true;
             },
 
             _ => {},
@@ -168,6 +176,11 @@ impl MyApp {
     }
 
     pub fn view_create_profile2(&self, scene: &SceneCreateProfile) -> Element<Msg> {
+        let game_version_valid = text(
+            if scene.is_game_version_valid {""} else {"Invalid Version (example for valid version: 1.63)"}
+        ).size(12).style(self.color_text_red);
+
+
         let main_content = container(
             iced::widget::column![
                 column![
@@ -195,8 +208,10 @@ impl MyApp {
                         column![
                             text("Game Version").size(14).style(self.color_text2),
                             text("").size(4),
-                            TextInput::new("Version", &scene.game_info.version)
+                            TextInput::new("Version", &scene.game_version_str)
                                 .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(string))),
+                            text("").size(4),
+                            game_version_valid,
                         ],
                     ].spacing(69),
                 ]
@@ -255,6 +270,7 @@ impl MyApp {
                     GameType::Deltarune => "Deltarune".to_string(),
                     GameType::Unset => "".to_string(),
                 };
+                scene.game_version_str = game_info.version.to_string();
                 scene.game_info = game_info;
             },
             Err(_) => {},
@@ -274,31 +290,31 @@ fn detect_game_and_version(data_file_path: &str) -> Result<GameInfo, String> {
     match hash.as_str() {
         "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {
             game_type: GameType::Undertale,
-            version: "1.00".to_string(),
+            version: Version {major: 1, minor: 0},
         }),
         "e59b57224b33673c4d1a33d99bcb24fe915061ea3f223d652aaf159d00cbfca8" |
         "3f85bc6204c2bf4975515e0f5283f5256e2875c81d8746db421182abd7123b08" => Ok(GameInfo {
             game_type: GameType::Undertale,
-            version: "1.01".to_string(),
+            version: Version {major: 1, minor: 1},
         }),
         "8804cabdcd91777b07f071955e4189384766203ae72d6fbaf828e1ab0948c856" => Ok(GameInfo {
             game_type: GameType::Undertale,
-            version: "1.06".to_string(),
+            version: Version {major: 1, minor: 6},
         }),
         "cd6dfa453ce9f1122cbd764921f9baa7f4289470717998a852b8f6ca8d6bb334" |
         "b718f8223a5bb31979ffeed10be6140c857b882fc0d0462b89d6287ae38c81c7" => Ok(GameInfo {
             game_type: GameType::Undertale,
-            version: "1.08".to_string(),
+            version: Version {major: 1, minor: 8},
         }),
         "c346f0a0a1ba02ac2d2db84df5dbf31d5ae28c64d8b65b8db6af70c67c430f39" |
         "4de4118ba4ad4243025e61337fe796532751032c0a04d0843d8b35f91ec2c220" |
         "45e594c06dfc48c14a2918efe7eb1874876c47b23b232550f910ce0e52de540d" => Ok(GameInfo {
             game_type: GameType::Deltarune,
-            version: "Ch2".to_string(),
+            version: Version {major: 2, minor: 0},
         }),
         _ => Ok(GameInfo {
             game_type: GameType::Other("Other Game".to_string()),
-            version: "v1.00".to_string(),
+            version: Version {major: 0, minor: 0},
         })
         // _ => Err(format!("Data file SHA-256 hash does not match any known Undertale or Deltarune data file: {hash}"))
     }

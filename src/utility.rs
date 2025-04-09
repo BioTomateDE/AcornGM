@@ -1,6 +1,9 @@
+use std::fmt;
+use std::path::PathBuf;
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
+use image::DynamicImage;
 
 pub fn get_current_working_directory() -> Option<String> {
     match std::env::current_dir() {
@@ -20,13 +23,13 @@ pub fn get_current_working_directory() -> Option<String> {
 
 
 fn try_get_default_icon_image() -> Result<image::DynamicImage, ()> {
-    let cwd = match get_current_working_directory() {
+    let cwd: String = match get_current_working_directory() {
         Some(cwd) => cwd,
         None => return Err(()),
     };
-    let path = std::path::Path::new(&cwd).join("./resources/default_profile_icon.png");
+    let path: PathBuf = std::path::Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
 
-    let img = match image::open(path) {
+    let img: DynamicImage = match image::open(path) {
         Ok(raw) => raw,
         Err(error) => {
             println!("[WARN @ utility::try_get_default_icon_image]  Failed to read default icon image: {error}");
@@ -36,6 +39,22 @@ fn try_get_default_icon_image() -> Result<image::DynamicImage, ()> {
 
     Ok(img)
 }
+
+
+// pub fn get_local_font(font_filename: &str) -> Result<Command<Result<(), !>>, String> {
+//     let cwd: String = match get_current_working_directory() {
+//         Some(cwd) => cwd,
+//         None => return Err("Could not get current working directory while getting fonts!".to_string()),
+//     };
+//     let path: PathBuf = std::path::Path::new(&cwd).join(format!("./resources/fonts/{font_filename}"));
+//     let raw = match fs::read(&path) {
+//         Ok(bytes) => bytes,
+//         Err(error) => return Err(format!("Could not read font file \"{}\": {error}", path.to_str().unwrap_or_else(|| "<could not convert path to string>"))),
+//     };
+//
+//     let command = iced::font::load(raw);
+//     Ok(command)
+// }
 
 pub fn get_default_icon_image() -> image::DynamicImage {
     try_get_default_icon_image().unwrap_or_else(|_| image::DynamicImage::ImageRgba8(image::RgbaImage::new(256,256)))
@@ -67,7 +86,7 @@ pub enum GameType {
 #[derive(Default, Debug, Clone)]
 pub struct GameInfo {
     pub game_type: GameType,
-    pub version: String,
+    pub version: Version,
 }
 
 
@@ -90,3 +109,56 @@ impl button::StyleSheet for TransparentButton {
 
 pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com/";
 
+
+
+#[derive(Debug)]
+pub struct ParseVersionError;
+impl std::error::Error for ParseVersionError {}
+impl fmt::Display for ParseVersionError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Invalid version format")
+    }
+}
+
+
+#[derive(Debug, Clone, Default)]
+pub struct Version {
+    pub major: u32,
+    pub minor: u32,
+}
+impl fmt::Display for Version {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{:02}", self.major, self.minor)
+    }
+}
+impl std::str::FromStr for Version {
+    type Err = ParseVersionError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut parts = s.split('.');
+        let major = parts
+            .next()
+            .ok_or(ParseVersionError)?
+            .parse()
+            .map_err(|_| ParseVersionError)?;
+        let minor = parts
+            .next()
+            .ok_or(ParseVersionError)?
+            .parse()
+            .map_err(|_| ParseVersionError)?;
+
+        Ok(Version { major, minor })
+    }
+}
+
+
+#[derive(Default, Debug, Clone)]
+pub enum PlatformType {
+    #[default]
+    Unset,
+    Linux,
+    Windows,
+    MacOS,
+    Android,
+    IOS,
+    // Other(String),
+}

@@ -15,7 +15,7 @@ pub fn get_default_image_prompt_path() -> Result<String, String> {
     }
 }
 
-pub fn get_default_profile_directory() -> Result<PathBuf, String> {
+pub fn get_default_home_directory() -> Result<PathBuf, String> {
     let username: String = whoami::username();
     if username == "" {
         return Err("Username returned by whoami::username() is empty.".to_string());
@@ -76,7 +76,7 @@ pub fn get_home_directory() -> PathBuf {
     // if not found, use default profile dir
     let error_msg: String;
     // println!("Environment Variable for Profiles Directory (ACORNGM_HOME) not set; using default directory.");
-    match get_default_profile_directory() {
+    match get_default_home_directory() {
         Ok(path) => {
             return path;
         }
