@@ -1,4 +1,4 @@
-use iced::{alignment, Element};
+use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use crate::{Msg, MyApp, SceneType};
 use crate::scenes::homepage::SceneHomePage;
@@ -25,12 +25,12 @@ pub struct SceneCreateProfile {
 }
 
 impl MyApp {
-    pub fn update_create_profile1(&mut self, message: Msg) {
+    pub fn update_create_profile1(&mut self, message: Msg) -> Command<Msg> {
         let scene: &mut SceneCreateProfile = match &mut self.active_scene {
             SceneType::CreateProfile1(scene) => scene,
             _ => {
                 println!("[ERROR @ create_profile1::update]  Could not extract scene: {:?}", self.active_scene);
-                return;
+                return Command::none();
             }
         };
 
@@ -60,18 +60,18 @@ impl MyApp {
                     .show_open_single_file();
                 let image_path = match image_path {
                     Ok(ok) => ok,
-                    Err(error) => { println!("[WARN @ create_profile1::update]  Could not get path from file picker: {}", error); return; }
+                    Err(error) => { println!("[WARN @ create_profile1::update]  Could not get path from file picker: {}", error); return Command::none(); }
                 };
                 let image_path = match image_path {
                     Some(ok) => ok,
-                    None => { println!("[WARN @ create_profile1::update]  Path from file picker is empty"); return;}
+                    None => { println!("[WARN @ create_profile1::update]  Path from file picker is empty"); return Command::none();}
                 };
 
                 let img = match image::open(image_path) {
                     Ok(img) => img,
                     Err(error) => {
                         println!("[WARN @ create_profile1::update]  Failed to parse image: {}", error);
-                        return;
+                        return Command::none();
                     }
                 };
                 scene.icon = img;
@@ -79,6 +79,7 @@ impl MyApp {
             },
             _ => {},
         }
+        Command::none()
     }
 
     pub fn view_create_profile1(&self, scene_create_profile: &SceneCreateProfile) -> Element<Msg> {

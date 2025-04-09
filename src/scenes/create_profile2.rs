@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
-use iced::{alignment, Element};
+use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use sha256;
 use crate::{Msg, MyApp, SceneType};
@@ -22,12 +22,12 @@ pub enum MsgCreateProfile2 {
 }
 
 impl MyApp {
-    pub fn update_create_profile2(&mut self, message: Msg) {
+    pub fn update_create_profile2(&mut self, message: Msg) -> Command<Msg> {
         let scene: &mut SceneCreateProfile = match &mut self.active_scene {
             SceneType::CreateProfile2(scene) => scene,
             _ => {
                 println!("[ERROR @ create_profile2::update]  Could not extract scene: {:?}", self.active_scene);
-                return;
+                return Command::none();
             }
         };
 
@@ -41,9 +41,9 @@ impl MyApp {
             },
 
             Msg::CreateProfile2(MsgCreateProfile2::StepNext) => {
-                if !scene.is_profile_name_valid { return }
+                if !scene.is_profile_name_valid { return Command::none() }
                 match scene.game_info.game_type {
-                    GameType::Unset => return,
+                    GameType::Unset => return Command::none(),
                     _ => {}
                 }
 
@@ -66,7 +66,7 @@ impl MyApp {
                     GameType::Undertale => "Undertale".to_string(),
                     GameType::Deltarune => "Deltarune".to_string(),
                     GameType::Other(name) => name.clone(),
-                    GameType::Unset => return,
+                    GameType::Unset => return Command::none(),
                 };
 
                 let config: serde_json::Value = serde_json::json!({
@@ -123,7 +123,7 @@ impl MyApp {
                 let default_data_dir: PathBuf = match get_default_data_file_dir() {
                     Ok(path) => path,
                     Err(error) => {
-                        println!("[WARN @ create_profile2::update]  Could not get default data file path: {error}"); return;
+                        println!("[WARN @ create_profile2::update]  Could not get default data file path: {error}"); return Command::none();
                     }
                 };
                 let data_path = native_dialog::FileDialog::new()
@@ -132,15 +132,15 @@ impl MyApp {
                     .show_open_single_file();
                 let data_path = match data_path {
                     Ok(p) => p,
-                    Err(error) => { println!("[WARN @ create_profile2::update]  Could not get path from file picker: {}", error); return; }
+                    Err(error) => { println!("[WARN @ create_profile2::update]  Could not get path from file picker: {}", error); return Command::none(); }
                 };
                 let data_path: PathBuf = match data_path {
                     Some(p) => p,
-                    None => { println!("[WARN @ create_profile2::update]  Path from file picker is empty"); return; }
+                    None => { println!("[WARN @ create_profile2::update]  Path from file picker is empty"); return Command::none(); }
                 };
                 let data_path: &str = match data_path.to_str() {
                     Some(p) => p,
-                    None => { println!("[WARN @ create_profile2::update]  Could not convert data path to string"); return; }
+                    None => { println!("[WARN @ create_profile2::update]  Could not convert data path to string"); return Command::none(); }
                 };
                 scene.data_file_path = data_path.to_string();
                 self.detect_game();
@@ -165,6 +165,7 @@ impl MyApp {
 
             _ => {},
         }
+        Command::none()
     }
 
     pub fn view_create_profile2(&self, scene: &SceneCreateProfile) -> Element<Msg> {

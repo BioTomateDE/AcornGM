@@ -52,12 +52,10 @@ impl MyApp {
                     std::thread::spawn(move || check_callback(&temp_login_token));
                 };
                 scene.status_string = "Browser opened";
-                iced::Command::none()
             },
 
             Msg::Login(MsgLogin::BackToHomepage) => {
                 self.active_scene = SceneType::HomePage(SceneHomePage {});
-                iced::Command::none()
             },
 
             Msg::Login(MsgLogin::Next) => {
@@ -79,12 +77,11 @@ impl MyApp {
                 println!("Access Token: {access_token}");
                 scene.status_string = "Success";
 
-                iced::window::resize(iced::window::Id::unique(), iced::Size {width: 900.0, height: 500.0})
                 // self.active_scene = SceneType::HomePage(SceneHomePage {});
             },
-
-            _ => iced::Command::none(),
+            _ => {},
         }
+        iced::Command::none()
     }
 
     pub fn view_login(&self, scene: &SceneLogin) -> Element<Msg> {

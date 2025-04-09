@@ -1,4 +1,4 @@
-use iced::{alignment, Element};
+use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button};
 use crate::{Msg, MyApp};
 use crate::scenes::homepage::Profile;
@@ -15,8 +15,8 @@ pub struct SceneViewProfile {
 }
 
 impl MyApp {
-    pub fn update_view_profile(&mut self, _message: Msg) {
-
+    pub fn update_view_profile(&mut self, _message: Msg) -> Command<Msg> {
+        Command::none()
     }
 
     pub fn view_view_profile(&self, _scene: &SceneViewProfile) -> Element<Msg> {

@@ -1,7 +1,7 @@
 use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
-use iced::{alignment, Color, Element};
+use iced::{alignment, Color, Command, Element};
 use iced::widget::{button, column, container, row, scrollable, text, Column, Image};
 use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
@@ -25,7 +25,7 @@ pub enum MsgHomePage {
 pub struct SceneHomePage;
 
 impl MyApp {
-    pub fn update_homepage(&mut self, message: Msg) {
+    pub fn update_homepage(&mut self, message: Msg) -> Command<Msg> {
         match message {
             Msg::HomePage(MsgHomePage::CreateProfile) => {
                 self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
@@ -55,6 +55,7 @@ impl MyApp {
 
             _ => {},
         }
+        Command::none()
     }
 
     pub fn view_homepage(&self) -> Element<Msg> {

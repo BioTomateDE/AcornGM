@@ -70,10 +70,10 @@ impl Application for MyApp {
     }
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         match &self.active_scene {
-            SceneType::HomePage(_) => self.update_homepage(message),
-            SceneType::CreateProfile1(_) => self.update_create_profile1(message),
-            SceneType::CreateProfile2(_) => self.update_create_profile2(message),
-            SceneType::ViewProfile(_) => self.update_view_profile(message),
+            SceneType::HomePage(_) => return self.update_homepage(message),
+            SceneType::CreateProfile1(_) => return self.update_create_profile1(message),
+            SceneType::CreateProfile2(_) => return self.update_create_profile2(message),
+            SceneType::ViewProfile(_) => return self.update_view_profile(message),
             SceneType::Login(_) => return self.update_login(message),
         }
         Command::none()
