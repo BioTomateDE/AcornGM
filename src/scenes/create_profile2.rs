@@ -5,10 +5,11 @@ use iced::advanced::image::Data;
 use iced::widget::{container, column, text, row, button, TextInput};
 use image::DynamicImage;
 use sha256;
-use crate::{Msg, MyApp, SceneType};
+use crate::{Msg, MyApp, SceneType, WINDOW_SIZE_VIEW_PROFILE};
 use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
-use crate::scenes::homepage::SceneHomePage;
+use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
+use crate::scenes::view_profile::SceneViewProfile;
 use crate::utility::{GameInfo, GameType, Version};
 
 #[derive(Debug, Clone)]
@@ -44,25 +45,31 @@ impl MyApp {
 
             Msg::CreateProfile2(MsgCreateProfile2::StepNext) => {
                 if !scene.is_profile_name_valid { return Command::none() }
-                match scene.game_info.game_type {
-                    GameType::Unset => return Command::none(),
-                    _ => {}
+                if let GameType::Unset = scene.game_info.game_type {
+                    return Command::none()
                 }
 
-                let profile_name: String = make_profile_dir_name_valid(&scene.profile_name);
-                let profile_dir: PathBuf = self.home_dir.join(format!("./Profiles/{}", profile_name));
-                match fs::create_dir_all(&profile_dir) {
-                    Ok(_) => {},
-                    Err(error) => show_msgbox(
-                        "Error creating AcornGM profile",
-                        &format!("Could not create profile directory: {error}"
-                        ))
+                let profile_dir_name: String = make_profile_dir_name_valid(&scene.profile_name);
+                let profile_dir: PathBuf = self.home_dir.join(format!("./Profiles/{}", profile_dir_name));
+                if let Err(error) = fs::create_dir_all(&profile_dir) {
+                    show_msgbox("Error creating AcornGM profile", &format!("Could not create profile directory: {error}"))
+                };
+
+                let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
+
+                let profile = Profile {
+                    index: self.profiles.len(),
+                    name: scene.profile_name.clone(),
+                    game_info: scene.game_info.clone(),
+                    date_created: date_now.with_timezone(&chrono::Local),
+                    last_used: date_now.with_timezone(&chrono::Local),
+                    mods: vec![],
+                    icon: scene.icon.clone(),
                 };
 
                 // create config file
                 let config_file: PathBuf = profile_dir.join("./profile.json");
-                let date: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
-                let date: String = date.to_string();
+                let date_string: String = date_now.to_string();
                 let game_name: String = match &scene.game_info.game_type {
                     GameType::Undertale => "Undertale".to_string(),
                     GameType::Deltarune => "Deltarune".to_string(),
@@ -72,20 +79,16 @@ impl MyApp {
 
                 let config: serde_json::Value = serde_json::json!({
                     "displayName": scene.profile_name,
-                    "dateCreated": date,
-                    "lastUsed": date,
+                    "dateCreated": date_string,
+                    "lastUsed": date_string,
                     "gameName": game_name,
                     "gameVersion": [scene.game_info.version.major, scene.game_info.version.minor],
                     "mods": [],
                 });
                 let config: String = serde_json::to_string_pretty(&config).unwrap();
 
-                match fs::write(config_file, config) {
-                    Ok(_) => {},
-                    Err(error) => show_msgbox(
-                        "Error creating AcornGM profile",
-                        &format!("Could not create profile config file: {error}"
-                        ))
+                if let Err(error) = fs::write(config_file, config) {
+                    show_msgbox("Error creating AcornGM profile", &format!("Could not create profile config file: {error}"))
                 };
 
                 // create icon file
@@ -100,38 +103,37 @@ impl MyApp {
                     }
                     Data::Bytes(bytes) => {
                         image::load_from_memory(bytes).unwrap_or_else(|_| {
-                            show_msgbox("Error creating AcornGM profile", "Could not create icon file because image::load_from_memory could not parse Data::Bytes.");
+                            show_msgbox("Error creating AcornGM profile",
+                                        "Could not create icon file because image::load_from_memory could not parse Data::Bytes.");
                             DynamicImage::ImageRgba8(image::RgbaImage::new(1, 1))
                         })
                     }
                     Data::Rgba { width, height, pixels } => {
                         DynamicImage::ImageRgba8(image::RgbaImage::from_raw(*width, *height, pixels.to_vec()).unwrap_or_else(|| {
-                            show_msgbox("Error creating AcornGM profile", "Could not create icon file because RgbaImage could not parse Data::Rgba.");
+                            show_msgbox("Error creating AcornGM profile",
+                                        "Could not create icon file because RgbaImage could not parse Data::Rgba.");
                             image::RgbaImage::new(1, 1)
                         }))
                     }
                 };
 
-                match image.save(icon_file) {
-                    Ok(_) => {},
-                    Err(error) => show_msgbox(
-                        "Error creating AcornGM profile",
-                        &format!("Could not create profile icon file: {error}"
-                        ))
+                if let Err(error) = image.save(icon_file) {
+                    show_msgbox("Error creating AcornGM profile", &format!("Could not create profile icon file: {error}"))
                 };
 
                 // copy data win
                 let data_file: PathBuf = profile_dir.join("./data.win");
-                match fs::copy(&scene.data_file_path, data_file) {
-                    Ok(_) => {},
-                    Err(error) => show_msgbox(
-                        "Error creating AcornGM profile",
-                        &format!("Could not copy data file: {error}"
-                        ))
+                if let Err(error) = fs::copy(&scene.data_file_path, data_file) {
+                    show_msgbox("Error creating AcornGM profile", &format!("Could not copy data file: {error}"))
                 };
 
-                // TODO replace with profile scene
-                self.active_scene = SceneType::HomePage(SceneHomePage {});
+                self.profiles = load_profiles(&self.home_dir);     // reload profiles for homepage
+                self.active_scene = SceneType::ViewProfile(SceneViewProfile {
+                    profile,
+                    mods: vec![],
+                    browser: Default::default(),
+                });
+                return iced::window::resize(self.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
             }
 
             Msg::CreateProfile2(MsgCreateProfile2::EditDataPath(data_file_path)) => {

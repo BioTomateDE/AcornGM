@@ -146,7 +146,6 @@ pub struct Profile {
     pub last_used: chrono::DateTime<chrono::Local>,
     pub mods: Vec<ModReference>,
     pub icon: Handle,
-    pub gm_data: Option<Vec<u8>>,       // not set in homepage; only on load
 }
 impl Default for Profile {
     fn default() -> Self {
@@ -158,7 +157,6 @@ impl Default for Profile {
             last_used: Default::default(),
             mods: vec![],
             icon: Handle::from_pixels(1, 1, [0, 0, 0, 0]),
-            gm_data: None,
         }
     }
 }
@@ -357,7 +355,6 @@ pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
             last_used,
             mods: profile_json.mods,
             icon,
-            gm_data: None,
         })
     }
     profiles
