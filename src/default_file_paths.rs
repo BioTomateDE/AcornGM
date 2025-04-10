@@ -1,17 +1,15 @@
-use std::any::Any;
 use std::path::PathBuf;
 use dialog::DialogBox;
 
-pub fn get_default_image_prompt_path() -> Result<String, String> {
+pub fn get_default_image_prompt_path() -> Result<PathBuf, String> {
     let username: String = whoami::username();
     if username == "" {
         return Err("Username returned by whoami::username() is empty.".to_string());
     }
 
     match std::env::consts::OS {
-        "windows" => Ok(format!("C:/Users/{username}/Pictures/")),
-        "linux" => Ok(format!("/home/{username}/Pictures/")),
-        // "macos" => Ok(format!("idk, i don't use macOS")),
+        "windows" => Ok(PathBuf::from(format!("C:/Users/{username}/Pictures/"))),
+        "linux" => Ok(PathBuf::from(format!("/home/{username}/Pictures/"))),
         other => Err(format!("Unknown or unsupported operating system \"{other}\".")),
     }
 }

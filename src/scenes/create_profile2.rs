@@ -91,9 +91,12 @@ impl MyApp {
                 // create icon file
                 let icon_file: PathBuf = profile_dir.join("./icon.png");
                 let image: DynamicImage = match scene.icon.data() {
-                    Data::Path(_) => {
-                        show_msgbox("Error creating AcornGM profile", "Could not create icon file because the scene icon is stored as Data::Path.");
-                        return Command::none()
+                    Data::Path(path) => {
+                        image::open(path).unwrap_or_else(|error| {
+                            show_msgbox("Error creating AcornGM profile",
+                                        &format!("Could not create icon file because image::open could not parse Data::Path: {error}"));
+                            DynamicImage::ImageRgba8(image::RgbaImage::new(1, 1))
+                        })
                     }
                     Data::Bytes(bytes) => {
                         image::load_from_memory(bytes).unwrap_or_else(|_| {

@@ -1,10 +1,11 @@
+use std::path::PathBuf;
+use std::time::Instant;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput, Image};
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, SceneType};
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{get_current_working_directory, img_to_iced, GameInfo};
-use image;
+use crate::utility::{path_to_str, GameInfo};
 use crate::default_file_paths::get_default_image_prompt_path;
 
 #[derive(Debug, Clone)]
@@ -51,34 +52,28 @@ impl MyApp {
                 scene.profile_name = profile_name;
             }
             Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon) => {
-                // TODO: improve performance by converting the image to iced image immediately rather than in .view every time it updates
-                let default_origin_path: String = get_default_image_prompt_path().unwrap_or_else(|error| {
+                let default_origin_path: PathBuf = get_default_image_prompt_path().unwrap_or_else(|error| {
                     println!("[WARN @ create_profile1::update]  Could not get default image prompt path: {error}");
-                    get_current_working_directory().unwrap_or_else(|| "".to_string())
+                    self.current_working_dir.clone()
                 });
 
                 let image_path = native_dialog::FileDialog::new()
                     .set_location(&default_origin_path)
-                    .add_filter("PNG Image", &["png"])
-                    .add_filter("JPEG Image", &["jpg", "jpeg"])
+                    .add_filter("Image", &["png", "jpg", "jpeg", "webp", "gif"])
                     .show_open_single_file();
                 let image_path = match image_path {
                     Ok(ok) => ok,
                     Err(error) => { println!("[WARN @ create_profile1::update]  Could not get path from file picker: {}", error); return Command::none(); }
                 };
-                let image_path = match image_path {
+                let image_path: PathBuf = match image_path {
                     Some(ok) => ok,
                     None => { println!("[WARN @ create_profile1::update]  Path from file picker is empty"); return Command::none();}
                 };
-
-                let img = match image::open(image_path) {
-                    Ok(img) => img,
-                    Err(error) => {
-                        println!("[WARN @ create_profile1::update]  Failed to parse image: {}", error);
-                        return Command::none();
-                    }
-                };
-                scene.icon = img_to_iced(&img);
+                if !image_path.is_file() {
+                    println!("[WARN @ create_profile1::update]  Specified image path for icon doesn't exist: {}", path_to_str(&image_path));
+                    return Command::none()
+                }
+                scene.icon = Handle::from_path(image_path);
 
             },
             _ => {},

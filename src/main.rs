@@ -37,6 +37,7 @@ enum SceneType {
 struct MyApp {
     flags: MyAppFlags,
     home_dir: PathBuf,
+    current_working_dir: PathBuf,
     profiles: Vec<Profile>,
     active_scene: SceneType,
     color_text1: Color,
@@ -61,11 +62,19 @@ impl Application for MyApp {
 
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
         let home_dir: PathBuf = get_home_directory();
+        let current_working_dir: PathBuf = match std::env::current_dir() {
+            Ok(dir) => dir,
+            Err(error) => {
+                println!("[FATAL @ main::MyApp::new]  Could not get current working directory: {error}");
+                std::process::exit(1);
+            },
+        };
         let profiles: Vec<Profile> = load_profiles(&home_dir);
 
         let ts: MyApp = Self {
             flags,
             home_dir,
+            current_working_dir,
             profiles,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             color_text1: Color::from_rgb8(231, 227, 213),

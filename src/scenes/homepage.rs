@@ -7,7 +7,7 @@ use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, SceneCreateProfile, SceneType, WINDOW_SIZE_VIEW_PROFILE};
 use crate::default_file_paths::{show_msgbox};
-use crate::utility::{get_default_icon_image, img_to_iced, GameInfo, GameType, TransparentButton, Version};
+use crate::utility::{get_default_icon_image, GameInfo, GameType, TransparentButton, Version};
 use serde;
 use crate::scenes::browser::ModBrowser;
 use crate::scenes::login::SceneLogin;
@@ -32,7 +32,7 @@ impl MyApp {
                 self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
                     profile_name: "My Profile".to_string(),
                     is_profile_name_valid: true,
-                    icon: get_default_icon_image(),
+                    icon: get_default_icon_image(&self.current_working_dir),
                     data_file_path: "".to_string(),
                     game_info: GameInfo::default(),
                     game_name: "".to_string(),
@@ -346,14 +346,8 @@ pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
             }
         };
 
-        let icon: image::DynamicImage = match image::open(icon_file) {
-            Ok(ok) => ok,
-            Err(error) => {
-                show_msgbox("Error while getting profiles", &format!("Could not read icon file of Profile \"{:?}\": {error}", path.to_str()));
-                continue;
-            }
-        };
-        let icon: Handle = img_to_iced(&icon);
+        // maybe check if icon exists
+        let icon: Handle = Handle::from_path(icon_file);
 
         profiles.push(Profile {
             index: profiles.len(),

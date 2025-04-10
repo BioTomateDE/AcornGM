@@ -3,75 +3,16 @@ use std::path::PathBuf;
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
-use crate::default_file_paths::show_msgbox;
 
-pub fn get_current_working_directory() -> Option<String> {
-    match std::env::current_dir() {
-        Ok(path) => match path.to_str() {
-            Some(string) => Some(string.to_string()),
-            None => {
-                println!("[WARN]  Could not parse string of current working directory");
-                None
-            }
-        },
-        Err(error ) => {
-            println!("[WARN]  Could not get current working directory: {error}");
-            None
-        }
-    }
-}
-
-
-fn try_get_default_icon_image() -> Option<image::DynamicImage> {
-    let cwd: String = match get_current_working_directory() {
-        Some(cwd) => cwd,
-        None => return None,
-    };
+pub fn get_default_icon_image(cwd: &PathBuf) -> Handle {
     let path: PathBuf = std::path::Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
-
-    let img: image::DynamicImage = match image::open(path) {
-        Ok(raw) => raw,
-        Err(error) => {
-            println!("[WARN @ utility::try_get_default_icon_image]  Failed to read default icon image: {error}");
-            return None
-        }
-    };
-
-    Some(img)
-}
-
-
-// pub fn get_local_font(font_filename: &str) -> Result<Command<Result<(), !>>, String> {
-//     let cwd: String = match get_current_working_directory() {
-//         Some(cwd) => cwd,
-//         None => return Err("Could not get current working directory while getting fonts!".to_string()),
-//     };
-//     let path: PathBuf = std::path::Path::new(&cwd).join(format!("./resources/fonts/{font_filename}"));
-//     let raw = match fs::read(&path) {
-//         Ok(bytes) => bytes,
-//         Err(error) => return Err(format!("Could not read font file \"{}\": {error}", path.to_str().unwrap_or_else(|| "<could not convert path to string>"))),
-//     };
-//
-//     let command = iced::font::load(raw);
-//     Ok(command)
-// }
-
-pub fn get_default_icon_image() -> Handle {
-    let img = try_get_default_icon_image().unwrap_or_else(
-        || image::DynamicImage::ImageRgba8(image::RgbaImage::new(256, 256)));
-    img_to_iced(&img)
-}
-
-
-pub fn img_to_iced(img: &image::DynamicImage) -> Handle {
-    let mut buf = std::io::Cursor::new(Vec::new());
-    if img.write_to(&mut buf, image::ImageOutputFormat::Png).is_err() {
-        show_msgbox("Error while converting image", "Could not write DynamicImage to buffer.");
+    if !path.is_file() {
+        println!("[WARN @ utility::get_default_icon_image]  Could not get default icon because its path doesn't exist: {}", path_to_str(&path));
         return Handle::from_pixels(1, 1, [0, 0, 0, 0])
-    };
-    Handle::from_memory(buf.into_inner())
-}
+    }
 
+    Handle::from_path(path)
+}
 
 
 #[derive(Default, Debug, Clone)]
@@ -107,8 +48,12 @@ impl button::StyleSheet for TransparentButton {
 }
 
 
-pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com/";
+pub fn path_to_str(path: &PathBuf) -> &str {
+    path.to_str().unwrap_or_else(|| "<invalid os string>")
+}
 
+
+pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com/";
 
 
 #[derive(Debug)]
