@@ -5,7 +5,7 @@ use iced::widget::container::Appearance;
 use crate::{Msg, MyApp, SceneType, WINDOW_SIZE_NORMAL};
 use crate::scenes::browser::{ModBrowser, MsgBrowser};
 use crate::scenes::homepage::{create_divider, list_style, Profile};
-use crate::utility::{img_to_iced, GameType, PlatformType, TransparentButton, Version};
+use crate::utility::{GameType, PlatformType, TransparentButton, Version};
 
 #[derive(Debug, Clone)]
 pub enum MsgViewProfile {
@@ -26,10 +26,10 @@ pub struct SceneViewProfile {
 }
 
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct AcornMod {
     pub name: String,
-    pub icon: image::DynamicImage,
+    pub icon: Handle,
     pub author_name: String,
     pub mod_version: Version,
     pub date_created: chrono::DateTime<chrono::Local>,
@@ -41,7 +41,7 @@ pub struct AcornMod {
 }
 impl AcornMod {
     pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
-        let icon: Image<Handle> = Image::new(img_to_iced(&self.icon));
+        let icon: Image<Handle> = Image::new(self.icon.clone());
 
         container(
             button(

@@ -7,7 +7,7 @@ use crate::scenes::view_profile::AcornMod;
 pub enum MsgModDetails {
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ModDetails {
     pub acorn_mod: AcornMod,
 }
