@@ -137,20 +137,34 @@ impl MyApp {
     }
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct Profile {
-    pub index: usize,           // index in .profiles to identify profile on press
+    pub index: usize,                   // index in .profiles to identify profile on press
     pub name: String,
     pub game_info: GameInfo,
     pub date_created: chrono::DateTime<chrono::Local>,
     pub last_used: chrono::DateTime<chrono::Local>,
     pub mods: Vec<ModReference>,
-    pub icon: image::DynamicImage,
+    pub icon: Handle,
     pub gm_data: Option<Vec<u8>>,       // not set in homepage; only on load
+}
+impl Default for Profile {
+    fn default() -> Self {
+        Self {
+            index: 0,
+            name: "Unknown Profile".to_string(),
+            game_info: Default::default(),
+            date_created: Default::default(),
+            last_used: Default::default(),
+            mods: vec![],
+            icon: Handle::from_pixels(1, 1, [0, 0, 0, 0]),
+            gm_data: None,
+        }
+    }
 }
 impl Profile {
     fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
-        let icon: Image<Handle> = img_to_iced(&self.icon);
+        let icon: Image<Handle> = Image::new(self.icon.clone());
         let mut active_mod_count: usize = 0;
         for mod_ref in &self.mods {
             if mod_ref.active {
@@ -339,6 +353,7 @@ pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
                 continue;
             }
         };
+        let icon: Handle = img_to_iced(&icon);
 
         profiles.push(Profile {
             index: profiles.len(),

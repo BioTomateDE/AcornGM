@@ -1,5 +1,6 @@
 use iced::{alignment, Command, Element};
-use iced::widget::{container, column, text, row, button, TextInput};
+use iced::widget::{container, column, text, row, button, TextInput, Image};
+use iced::widget::image::Handle;
 use crate::{Msg, MyApp, SceneType};
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{get_current_working_directory, img_to_iced, GameInfo};
@@ -14,11 +15,11 @@ pub enum MsgCreateProfile1 {
     EditProfileIcon,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct SceneCreateProfile {
     pub profile_name: String,
     pub is_profile_name_valid: bool,
-    pub icon: image::DynamicImage,
+    pub icon: Handle,
     pub data_file_path: String,
     pub game_info: GameInfo,
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
@@ -77,7 +78,7 @@ impl MyApp {
                         return Command::none();
                     }
                 };
-                scene.icon = img;
+                scene.icon = img_to_iced(&img);
 
             },
             _ => {},
@@ -98,10 +99,7 @@ impl MyApp {
             if scene_create_profile.is_profile_name_valid {""} else {"Invalid Profile Name"}
         ).size(12).style(self.color_text_red);
 
-        // scene.icon.write_to()
-        // let icon = iced::widget::image::Handle::from_rgba(scene.icon.width(), scene.icon.height(), scene.icon.);
-        // let icon = iced::widget::image(icon);
-        let icon = img_to_iced(&scene.icon);
+        let icon: Image<Handle> = Image::new(scene.icon.clone());
 
         let main_content = container(
             iced::widget::column![

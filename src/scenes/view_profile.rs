@@ -41,7 +41,7 @@ pub struct AcornMod {
 }
 impl AcornMod {
     pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
-        let icon: Image<Handle> = img_to_iced(&self.icon);
+        let icon: Image<Handle> = Image::new(img_to_iced(&self.icon));
 
         container(
             button(
@@ -175,7 +175,7 @@ impl MyApp {
                     ]
                     .spacing(10)
                 ),
-                text("                                             ").size(20),
+                text("                                           ").size(20),
                 container(
                      row![
                         button("Launch Game").on_press(Msg::ViewProfile(MsgViewProfile::LaunchGame)),

@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
-use image::DynamicImage;
+use crate::default_file_paths::show_msgbox;
 
 pub fn get_current_working_directory() -> Option<String> {
     match std::env::current_dir() {
@@ -22,22 +22,22 @@ pub fn get_current_working_directory() -> Option<String> {
 }
 
 
-fn try_get_default_icon_image() -> Result<image::DynamicImage, ()> {
+fn try_get_default_icon_image() -> Option<image::DynamicImage> {
     let cwd: String = match get_current_working_directory() {
         Some(cwd) => cwd,
-        None => return Err(()),
+        None => return None,
     };
     let path: PathBuf = std::path::Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
 
-    let img: DynamicImage = match image::open(path) {
+    let img: image::DynamicImage = match image::open(path) {
         Ok(raw) => raw,
         Err(error) => {
             println!("[WARN @ utility::try_get_default_icon_image]  Failed to read default icon image: {error}");
-            return Err(())
+            return None
         }
     };
 
-    Ok(img)
+    Some(img)
 }
 
 
@@ -56,20 +56,20 @@ fn try_get_default_icon_image() -> Result<image::DynamicImage, ()> {
 //     Ok(command)
 // }
 
-pub fn get_default_icon_image() -> image::DynamicImage {
-    try_get_default_icon_image().unwrap_or_else(|_| image::DynamicImage::ImageRgba8(image::RgbaImage::new(256,256)))
+pub fn get_default_icon_image() -> Handle {
+    let img = try_get_default_icon_image().unwrap_or_else(
+        || image::DynamicImage::ImageRgba8(image::RgbaImage::new(256, 256)));
+    img_to_iced(&img)
 }
 
 
-pub fn img_to_iced(img: &image::DynamicImage) -> iced::widget::image::Image<Handle> {
+pub fn img_to_iced(img: &image::DynamicImage) -> Handle {
     let mut buf = std::io::Cursor::new(Vec::new());
-
-    // Encode the image to PNG format in memory
-    img.write_to(&mut buf, image::ImageOutputFormat::Png).unwrap();
-
-    // Create an Iced `Handle` from memory bytes
-    let handle = iced::widget::image::Handle::from_memory(buf.into_inner());
-    iced::widget::image::Image::new(handle)
+    if img.write_to(&mut buf, image::ImageOutputFormat::Png).is_err() {
+        show_msgbox("Error while converting image", "Could not write DynamicImage to buffer.");
+        return Handle::from_pixels(1, 1, [0, 0, 0, 0])
+    };
+    Handle::from_memory(buf.into_inner())
 }
 
 

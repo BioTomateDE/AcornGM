@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
 use iced::{alignment, Command, Element};
+use iced::advanced::image::Data;
 use iced::widget::{container, column, text, row, button, TextInput};
+use image::DynamicImage;
 use sha256;
 use crate::{Msg, MyApp, SceneType};
 use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
@@ -88,7 +90,26 @@ impl MyApp {
 
                 // create icon file
                 let icon_file: PathBuf = profile_dir.join("./icon.png");
-                match scene.icon.save(icon_file) {
+                let image: DynamicImage = match scene.icon.data() {
+                    Data::Path(_) => {
+                        show_msgbox("Error creating AcornGM profile", "Could not create icon file because the scene icon is stored as Data::Path.");
+                        return Command::none()
+                    }
+                    Data::Bytes(bytes) => {
+                        image::load_from_memory(bytes).unwrap_or_else(|_| {
+                            show_msgbox("Error creating AcornGM profile", "Could not create icon file because image::load_from_memory could not parse Data::Bytes.");
+                            DynamicImage::ImageRgba8(image::RgbaImage::new(1, 1))
+                        })
+                    }
+                    Data::Rgba { width, height, pixels } => {
+                        DynamicImage::ImageRgba8(image::RgbaImage::from_raw(*width, *height, pixels.to_vec()).unwrap_or_else(|| {
+                            show_msgbox("Error creating AcornGM profile", "Could not create icon file because RgbaImage could not parse Data::Rgba.");
+                            image::RgbaImage::new(1, 1)
+                        }))
+                    }
+                };
+
+                match image.save(icon_file) {
                     Ok(_) => {},
                     Err(error) => show_msgbox(
                         "Error creating AcornGM profile",

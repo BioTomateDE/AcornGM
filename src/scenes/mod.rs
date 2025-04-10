@@ -5,3 +5,4 @@ pub mod create_profile2;
 pub mod view_profile;
 pub mod login;
 mod browser;
+mod mod_details;
