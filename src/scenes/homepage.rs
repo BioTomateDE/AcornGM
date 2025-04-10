@@ -36,8 +36,8 @@ impl MyApp {
                     data_file_path: "".to_string(),
                     game_info: GameInfo::default(),
                     game_name: "".to_string(),
-                    game_version_str: "0.00".to_string(),
-                    is_game_version_valid: false,
+                    game_version_str: "".to_string(),
+                    is_game_version_valid: true,        // to hide error when no data file is loaded
                 });
             },
 
@@ -49,7 +49,8 @@ impl MyApp {
                         profile: profile.clone(),
                         browser: ModBrowser {
                             search_query: "".to_string(),
-                            mods: vec![],
+                            use_regex: false,
+                            results: vec![],
                             show_only_compatible: true,
                         },
                     })

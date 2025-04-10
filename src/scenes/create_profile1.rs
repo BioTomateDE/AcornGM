@@ -50,6 +50,7 @@ impl MyApp {
                 scene.profile_name = profile_name;
             }
             Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon) => {
+                // TODO: improve performance by converting the image to iced image immediately rather than in .view every time it updates
                 let default_origin_path: String = get_default_image_prompt_path().unwrap_or_else(|error| {
                     println!("[WARN @ create_profile1::update]  Could not get default image prompt path: {error}");
                     get_current_working_directory().unwrap_or_else(|| "".to_string())

@@ -51,7 +51,7 @@ struct MyAppFlags {
 
 
 const WINDOW_SIZE_NORMAL: Size = Size { width: 500.0, height: 500.0 };
-const WINDOW_SIZE_VIEW_PROFILE: Size = Size { width: 1000.0, height: 700.0 };
+const WINDOW_SIZE_VIEW_PROFILE: Size = Size { width: 900.0, height: 800.0 };
 
 impl Application for MyApp {
     type Executor = iced::executor::Default;

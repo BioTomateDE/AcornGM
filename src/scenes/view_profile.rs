@@ -40,7 +40,7 @@ pub struct AcornMod {
     pub description: String,
 }
 impl AcornMod {
-    fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
+    pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
         let icon: Image<Handle> = img_to_iced(&self.icon);
 
         container(
@@ -132,7 +132,7 @@ impl MyApp {
             mods.push(create_divider())
         }
         let mods: Container<Msg> = container(column(mods).spacing(5))
-            .width(430)
+            .width(380)
             .style(list_style);
 
         let my_font = iced::Font {
@@ -162,7 +162,7 @@ impl MyApp {
                     ],
                 ],
             ].padding(20)
-        ).width(500);
+        ).width(450);
 
         let browser_content = scene.browser.view(self.color_text1, self.color_text2);
 
@@ -175,7 +175,7 @@ impl MyApp {
                     ]
                     .spacing(10)
                 ),
-                text("                                                      ").size(20),
+                text("                                             ").size(20),
                 container(
                      row![
                         button("Launch Game").on_press(Msg::ViewProfile(MsgViewProfile::LaunchGame)),
@@ -190,8 +190,8 @@ impl MyApp {
         container(
             column![
                 row![
-                    column![mods_content].height(460),
-                    text("  ").size(10),
+                    column![mods_content].height(750),
+                    text("       ").size(10),
                     column![browser_content].height(350),
                 ],
                 button_bar

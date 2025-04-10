@@ -156,6 +156,10 @@ impl MyApp {
             },
 
             Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(version_str)) => {
+                // ignore if no data file loaded or if version was automatically detected
+                if let GameType::Other(_) = scene.game_info.game_type {
+                    return Command::none()
+                }
                 let version: Version = match version_str.parse() {
                     Ok(ver) => ver,
                     Err(_) => {
@@ -180,6 +184,13 @@ impl MyApp {
             if scene.is_game_version_valid {""} else {"Invalid Version (example for valid version: 1.63)"}
         ).size(12).style(self.color_text_red);
 
+        let auto_detected = text(
+            match scene.game_info.game_type {
+                GameType::Unset => "",
+                GameType::Other(_) => "Could not determine game version!\nIf your game is Undertale or Deltarune, please make sure it is not modified!",
+                _ => "Game Name and Version automatically detected!",
+            }
+        );
 
         let main_content = container(
             iced::widget::column![
@@ -214,6 +225,8 @@ impl MyApp {
                             game_version_valid,
                         ],
                     ].spacing(69),
+                    text("").size(15),
+                    auto_detected,
                 ]
                 .padding(20)
             ]
@@ -285,7 +298,7 @@ fn detect_game_and_version(data_file_path: &str) -> Result<GameInfo, String> {
         Err(error) => return Err(format!("Could not read data file: {error}")),
     };
     let hash: String = sha256::digest(bytes);
-    println!("hash: {hash}");
+    println!("Game data.win SHA-256 Hash: {hash}");
 
     match hash.as_str() {
         "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {
@@ -316,7 +329,6 @@ fn detect_game_and_version(data_file_path: &str) -> Result<GameInfo, String> {
             game_type: GameType::Other("Other Game".to_string()),
             version: Version {major: 0, minor: 0},
         })
-        // _ => Err(format!("Data file SHA-256 hash does not match any known Undertale or Deltarune data file: {hash}"))
     }
 }
 
@@ -343,7 +355,7 @@ fn make_profile_dir_name_valid(profile_name: &str) -> String {
         }
     }
 
-    if name.len() < 1 || name.ends_with('.') || BANNED_NAMES.contains(&name.as_str()) {
+    if name.len() < 1 || name.ends_with('.') || BANNED_NAMES.contains(&name.to_uppercase().as_str()) {
         name = uuid::Uuid::new_v4().hyphenated().to_string();
     }
     name
