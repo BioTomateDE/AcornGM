@@ -100,16 +100,7 @@ pub fn remove_spaces(s: &str) -> String {
     s.chars().filter(|&c| !c.is_whitespace()).collect()
 }
 
-
-pub fn hash_file1(path: &Path) -> Result<String, String> {
-    let bytes: Vec<u8> = match fs::read(path) {
-        Ok(bytes) => bytes,
-        Err(error) => return Err(format!("[ERROR @ utility::hash_file1]  Could not read data file at '{}': {error}", path.display())),
-    };
-    let hash: String = sha256::digest(bytes);
-    Ok(hash)
-}
-pub fn hash_file2(path: &Path) -> Result<String, String> {
+pub fn hash_file(path: &Path) -> Result<String, String> {
     let file = fs::File::open(path)
         .map_err(|e| format!("[ERROR @ utility::hash_file2]  Could not open data file '{}': {}", path.display(), e))?;
     let mut reader = BufReader::new(file);

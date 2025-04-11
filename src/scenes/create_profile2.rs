@@ -10,7 +10,7 @@ use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
-use crate::utility::{hash_file1, hash_file2, remove_spaces, GameInfo, GameType, Version};
+use crate::utility::{hash_file, remove_spaces, GameInfo, GameType, Version};
 use fast_image_resize as fir;
 use fast_image_resize::PixelType;
 
@@ -46,7 +46,9 @@ impl MyApp {
             },
 
             Msg::CreateProfile2(MsgCreateProfile2::StepNext) => {
-                if !scene.is_profile_name_valid { return Command::none() }
+                if !scene.is_profile_name_valid || !scene.is_game_version_valid {
+                    return Command::none()
+                }
                 if let GameType::Unset = scene.game_info.game_type {
                     return Command::none()
                 }
@@ -93,7 +95,7 @@ impl MyApp {
                     show_msgbox("Error creating AcornGM profile", &format!("Could not create profile config file: {error}"))
                 };
 
-                // create icon file
+                // create icon file  | {..} SLOW OPERATION
                 let icon_file: PathBuf = profile_dir.join("./icon.png");
                 let image: DynamicImage = match scene.icon.data() {
                     Data::Path(path) => {
@@ -119,14 +121,14 @@ impl MyApp {
                     }
                 };
 
-                let resized_image: DynamicImage = resize_image_fast(image);     // cap resolution for performance
+                let resized_image: DynamicImage = resize_image_fast(image);     // cap resolution for performance | {..} SLOW OPERATION
                 if let Err(error) = resized_image.save(icon_file) {
                     show_msgbox("Error creating AcornGM profile", &format!("Could not create profile icon file: {error}"))
                 };
 
                 // copy data win
                 let data_file: PathBuf = profile_dir.join("./data.win");
-                if let Err(error) = fs::copy(&scene.data_file_path, data_file) {
+                if let Err(error) = fs::copy(&scene.data_file_path, data_file) {      // {..} SLOW OPERATION
                     show_msgbox("Error creating AcornGM profile", &format!("Could not copy data file: {error}"))
                 };
 
@@ -154,6 +156,8 @@ impl MyApp {
                         println!("[WARN @ create_profile2::update]  Could not get default data file path: {error}"); return Command::none();
                     }
                 };
+                // this file picker blocks the main thread; causing it to appear as "Not responding"
+                // perhaps use async {..}
                 let data_path = native_dialog::FileDialog::new()
                     .set_location(&default_data_dir)
                     .add_filter("GameMaker Data File", &["win", "unx"])
@@ -323,13 +327,8 @@ impl MyApp {
 
 
 fn detect_game_and_version(data_file_path: &Path) -> Result<GameInfo, String> {
-    let now = std::time::Instant::now();
-    let hash: String = hash_file1(data_file_path)?;
-    println!("Hash Method 1 took {:.2?}; {hash}", now.elapsed());
-    let now = std::time::Instant::now();
-    let hash2: String = hash_file2(data_file_path)?;
-    println!("Hash Method 2 took {:.2?}; {hash2}", now.elapsed());
-    // println!("Game data.win SHA-256 Hash: {hash}");
+    let hash: String = hash_file(data_file_path)?;      // {..} SLOW OPERATION
+    println!("Game data.win SHA-256 Hash: {hash}");
 
     match hash.as_str() {
         "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {
