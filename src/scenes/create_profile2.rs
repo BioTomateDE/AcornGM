@@ -137,6 +137,7 @@ impl MyApp {
                     profile,
                     mods: vec![],
                     browser: Default::default(),
+                    mod_details: Default::default(),
                 });
                 return iced::window::resize(self.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
             }

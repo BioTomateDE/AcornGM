@@ -5,6 +5,7 @@ use iced::widget::container::Appearance;
 use crate::{Msg, MyApp, SceneType, WINDOW_SIZE_NORMAL};
 use crate::scenes::browser::{ModBrowser, MsgBrowser};
 use crate::scenes::homepage::{create_divider, list_style, Profile};
+use crate::scenes::mod_details::ModDetails;
 use crate::utility::{GameType, PlatformType, TransparentButton, Version};
 
 #[derive(Debug, Clone)]
@@ -23,6 +24,7 @@ pub struct SceneViewProfile {
     pub profile: Profile,
     pub mods: Vec<AcornMod>,
     pub browser: ModBrowser,
+    pub mod_details: ModDetails,
 }
 
 
@@ -38,6 +40,22 @@ pub struct AcornMod {
     pub supported_game_versions: Vec<Version>,
     pub supported_platforms: Vec<PlatformType>,
     pub description: String,
+}
+impl Default for AcornMod {
+    fn default() -> Self {
+        Self {
+            name: "Unknown Mod".to_string(),
+            icon: Handle::from_pixels(256, 256, vec![]),        //TODO check if ts works
+            author_name: "Unknown Mod Author".to_string(),
+            mod_version: Default::default(),
+            date_created: Default::default(),
+            date_last_updated: Default::default(),
+            supported_games: vec![],
+            supported_game_versions: vec![],
+            supported_platforms: vec![],
+            description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.".to_string(),
+        }
+    }
 }
 impl AcornMod {
     pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
@@ -164,8 +182,6 @@ impl MyApp {
             ].padding(20)
         ).width(450);
 
-        let browser_content = scene.browser.view(self.color_text1, self.color_text2);
-
         let button_bar = container(
             row![
                 container(
@@ -187,12 +203,20 @@ impl MyApp {
         )
             .width(900);
 
+
+        let browser_content: Element<Msg> = scene.browser.view(self.color_text1, self.color_text2);
+        let mod_details_content: Element<Msg> = scene.mod_details.view(self.color_text1, self.color_text2);
+
         container(
             column![
                 row![
                     column![mods_content].height(750),
                     text("       ").size(10),
-                    column![browser_content].height(350),
+                    column![
+                        column![browser_content].height(350),
+                        text("").size(10),
+                        column![mod_details_content].height(350),
+                    ]
                 ],
                 button_bar
             ]

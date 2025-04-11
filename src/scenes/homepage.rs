@@ -54,6 +54,7 @@ impl MyApp {
                             results: vec![],
                             show_only_compatible: true,
                         },
+                        mod_details: Default::default(),
                     })
                 }
                 // let command: Command<Result<(), !>> = match get_local_font("wingdings") {

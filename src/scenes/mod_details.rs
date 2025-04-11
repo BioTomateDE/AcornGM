@@ -1,5 +1,5 @@
 use iced::{Color, Command, Element};
-use iced::widget::{container, column, text_input, Container, row, button, text, checkbox, scrollable};
+use iced::widget::{container, column, text_input, Container, row, button, text, checkbox, scrollable, Image};
 use crate::Msg;
 use crate::scenes::view_profile::AcornMod;
 
@@ -7,38 +7,44 @@ use crate::scenes::view_profile::AcornMod;
 pub enum MsgModDetails {
 }
 
-#[derive(Debug, Clone)]
+#[derive(Default, Debug, Clone)]
 pub struct ModDetails {
-    pub acorn_mod: AcornMod,
+    pub acorn_mod: Option<AcornMod>,
 }
 impl ModDetails {
     pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
-        column![].into()
-        // container(
-        //     column![
-        //         text("").size(8),
-        //         row![
-        //             row![
-        //                 text_input("Search...", &self.search_query)
-        //                     .on_input(|string| Msg::ViewProfile(MsgViewProfile::Browser(MsgBrowser::EditSearchQuery(string))))
-        //                     .on_submit(Msg::ViewProfile(MsgViewProfile::Browser(MsgBrowser::PerformSearch))),
-        //                 text("  ").size(10),
-        //             ],
-        //             text("  ").size(10),
-        //             button("Search").on_press(Msg::ViewProfile(MsgViewProfile::Browser(MsgBrowser::PerformSearch))),
-        //             text("  ").size(10),
-        //         ],
-        //         text("").size(6),
-        //         checkbox("Use Regex for search", self.use_regex)
-        //             .on_toggle(|state| Msg::ViewProfile(MsgViewProfile::Browser(MsgBrowser::ToggleRegex(state)))),
-        //         text("").size(4),
-        //         checkbox("Only show compatible mods", self.show_only_compatible)
-        //             .on_toggle(|state| Msg::ViewProfile(MsgViewProfile::Browser(MsgBrowser::ToggleOnlyCompatible(state)))),
-        //         text("").size(10),
-        //     ]
-        // )
-        //     .height(400)
-        //     .into()
+        if self.acorn_mod.is_none() {
+            return container(
+                column![
+                    text("Select a mod from the browser or from your profile's mod list").size(24).style(color_text2),
+                ],
+            )
+                .height(400)
+                .into()
+        }
+
+        let acorn_mod: &AcornMod = self.acorn_mod.as_ref().unwrap();    // .unwrap() is ok because we checked if it's None, the function returned already
+        let icon = Image::new(acorn_mod.icon.clone());
+
+        container(
+            column![
+                row![
+                    icon,   // height and width should be capped beforehand
+                    text(&acorn_mod.name).size(24).style(color_text1),
+                ],
+                text("").size(6),
+                row![
+                    text("Author").size(12).style(color_text2).width(80),
+                    text(&acorn_mod.author_name).size(16).style(color_text1),
+                ],
+                row![
+                    text("Mod Version").size(12).style(color_text2).width(80),
+                    text(acorn_mod.mod_version.to_string()).size(16).style(color_text1),
+                ],
+            ]
+        )
+            .height(400)
+            .into()
     }
 
     pub fn update(&mut self, message: MsgModDetails) -> Command<Msg> {
