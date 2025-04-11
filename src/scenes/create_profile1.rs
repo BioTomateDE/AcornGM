@@ -5,7 +5,7 @@ use iced::widget::{container, column, text, row, button, TextInput, Image};
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, SceneType};
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{path_to_str, GameInfo};
+use crate::utility::GameInfo;
 use crate::default_file_paths::get_default_image_prompt_path;
 
 #[derive(Debug, Clone)]
@@ -26,6 +26,7 @@ pub struct SceneCreateProfile {
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
     pub game_version_str: String,
     pub is_game_version_valid: bool,
+    pub currently_loading_data_file: bool,
 }
 
 impl MyApp {
@@ -70,7 +71,7 @@ impl MyApp {
                     None => { println!("[WARN @ create_profile1::update]  Path from file picker is empty"); return Command::none();}
                 };
                 if !image_path.is_file() {
-                    println!("[WARN @ create_profile1::update]  Specified image path for icon doesn't exist: {}", path_to_str(&image_path));
+                    println!("[WARN @ create_profile1::update]  Specified image path for icon doesn't exist: {}", image_path.display());
                     return Command::none()
                 }
                 scene.icon = Handle::from_path(image_path);

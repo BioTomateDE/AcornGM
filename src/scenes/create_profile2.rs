@@ -1,6 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
-use std::time::Instant;
+use std::path::{Path, PathBuf};
 use iced::{alignment, Command, Element};
 use iced::advanced::image::Data;
 use iced::widget::{container, column, text, row, button, TextInput};
@@ -11,7 +10,7 @@ use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;
 use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
-use crate::utility::{GameInfo, GameType, Version};
+use crate::utility::{hash_file1, hash_file2, remove_spaces, GameInfo, GameType, Version};
 use fast_image_resize as fir;
 use fast_image_resize::PixelType;
 
@@ -187,9 +186,11 @@ impl MyApp {
 
             Msg::CreateProfile2(MsgCreateProfile2::EditGameVersion(version_str)) => {
                 // ignore if no data file loaded or if version was automatically detected
-                if let GameType::Other(_) = scene.game_info.game_type {
-                    return Command::none()
+                match scene.game_info.game_type {
+                    GameType::Other(_) => {},
+                    _ => return Command::none(),
                 }
+                scene.game_version_str = remove_spaces(&version_str);
                 let version: Version = match version_str.parse() {
                     Ok(ver) => ver,
                     Err(_) => {
@@ -197,10 +198,7 @@ impl MyApp {
                         return Command::none();
                     }
                 };
-                match &scene.game_info.game_type {
-                    GameType::Other(_) => scene.game_info.version = version,
-                    _ => {},
-                }
+                scene.game_info.version = version;
                 scene.is_game_version_valid = true;
             },
 
@@ -305,7 +303,9 @@ impl MyApp {
             }
         };
 
-        match detect_game_and_version(&scene.data_file_path) {
+        let data_file_path: &Path = Path::new(&scene.data_file_path);
+
+        match detect_game_and_version(data_file_path) {
             Ok(game_info) => {
                 scene.game_name = match &game_info.game_type {
                     GameType::Other(name) => name.clone(),
@@ -322,13 +322,14 @@ impl MyApp {
 }
 
 
-fn detect_game_and_version(data_file_path: &str) -> Result<GameInfo, String> {
-    let bytes: Vec<u8> = match fs::read(data_file_path) {
-        Ok(bytes) => bytes,
-        Err(error) => return Err(format!("Could not read data file: {error}")),
-    };
-    let hash: String = sha256::digest(bytes);
-    println!("Game data.win SHA-256 Hash: {hash}");
+fn detect_game_and_version(data_file_path: &Path) -> Result<GameInfo, String> {
+    let now = std::time::Instant::now();
+    let hash: String = hash_file1(data_file_path)?;
+    println!("Hash Method 1 took {:.2?}; {hash}", now.elapsed());
+    let now = std::time::Instant::now();
+    let hash2: String = hash_file2(data_file_path)?;
+    println!("Hash Method 2 took {:.2?}; {hash2}", now.elapsed());
+    // println!("Game data.win SHA-256 Hash: {hash}");
 
     match hash.as_str() {
         "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {

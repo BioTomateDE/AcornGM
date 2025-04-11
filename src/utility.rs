@@ -1,13 +1,15 @@
-use std::fmt;
-use std::path::PathBuf;
+use std::{fmt, fs};
+use std::io::{BufReader, Read};
+use std::path::{Path, PathBuf};
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
+use sha2::{Digest, Sha256};
 
 pub fn get_default_icon_image(cwd: &PathBuf) -> Handle {
     let path: PathBuf = std::path::Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
     if !path.is_file() {
-        println!("[WARN @ utility::get_default_icon_image]  Could not get default icon because its path doesn't exist: {}", path_to_str(&path));
+        println!("[WARN @ utility::get_default_icon_image]  Could not get default icon because its path doesn't exist: {}", path.display());
         return Handle::from_pixels(1, 1, [0, 0, 0, 0])
     }
 
@@ -47,13 +49,7 @@ impl button::StyleSheet for TransparentButton {
     }
 }
 
-
-pub fn path_to_str(path: &PathBuf) -> &str {
-    path.to_str().unwrap_or_else(|| "<invalid os string>")
-}
-
-
-pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com/";
+pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com";
 
 
 #[derive(Debug)]
@@ -91,8 +87,47 @@ impl std::str::FromStr for Version {
             .parse()
             .map_err(|_| ParseVersionError)?;
 
+        // Ensure there are no extra parts after the minor version
+        if parts.next().is_some() {
+            return Err(ParseVersionError);
+        }
+
         Ok(Version { major, minor })
     }
+}
+
+pub fn remove_spaces(s: &str) -> String {
+    s.chars().filter(|&c| !c.is_whitespace()).collect()
+}
+
+
+pub fn hash_file1(path: &Path) -> Result<String, String> {
+    let bytes: Vec<u8> = match fs::read(path) {
+        Ok(bytes) => bytes,
+        Err(error) => return Err(format!("[ERROR @ utility::hash_file1]  Could not read data file at '{}': {error}", path.display())),
+    };
+    let hash: String = sha256::digest(bytes);
+    Ok(hash)
+}
+pub fn hash_file2(path: &Path) -> Result<String, String> {
+    let file = fs::File::open(path)
+        .map_err(|e| format!("[ERROR @ utility::hash_file2]  Could not open data file '{}': {}", path.display(), e))?;
+    let mut reader = BufReader::new(file);
+
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 8192];
+
+    loop {
+        let bytes_read = reader.read(&mut buffer)
+            .map_err(|e| format!("[ERROR @ utility::hash_file2]  Could not read from data file '{}': {}", path.display(), e))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+
+    let result = hasher.finalize();
+    Ok(format!("{:x}", result))
 }
 
 
