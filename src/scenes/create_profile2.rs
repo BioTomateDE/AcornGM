@@ -120,15 +120,7 @@ impl MyApp {
                     }
                 };
 
-                // cap resolution for performance
-                let image2: DynamicImage = image.clone();
-                let now: Instant = Instant::now();
-                let resized_image: DynamicImage = resize_image_fast(image);
-                println!("Resizing image using 'fast' method took {:.2?}", now.elapsed());
-                let now: Instant = Instant::now();
-                let _resized_image2: DynamicImage = image2.resize_to_fill(256, 256, image::imageops::FilterType::Lanczos3);
-                println!("Resizing image using 'normal' method took {:.2?}", now.elapsed());
-
+                let resized_image: DynamicImage = resize_image_fast(image);     // cap resolution for performance
                 if let Err(error) = resized_image.save(icon_file) {
                     show_msgbox("Error creating AcornGM profile", &format!("Could not create profile icon file: {error}"))
                 };
@@ -400,29 +392,10 @@ fn make_profile_dir_name_valid(profile_name: &str) -> String {
 }
 
 
-// fn guess_pixel_type(img: &DynamicImage) -> Option<PixelType> {
-//     match img.color() {
-//         image::ColorType::L8 => Some(PixelType::U8),           // Grayscale 8-bit
-//         image::ColorType::La8 => Some(PixelType::U8x2),        // Grayscale + Alpha
-//         image::ColorType::Rgb8 => Some(PixelType::U8x3),       // RGB 8-bit
-//         image::ColorType::Rgba8 => Some(PixelType::U8x4),      // RGBA 8-bit
-//         image::ColorType::L16 => Some(PixelType::U16),         // Grayscale 16-bit
-//         image::ColorType::La16 => Some(PixelType::U16x2),      // Grayscale + Alpha 16-bit
-//         image::ColorType::Rgb16 => Some(PixelType::U16x3),     // RGB 16-bit
-//         image::ColorType::Rgba16 => Some(PixelType::U16x4),    // RGBA 16-bit
-//         _ => None, // Unsupported / unknown format
-//     }
-// }
-
-
 fn resize_image_fast(image: DynamicImage) -> DynamicImage {
     const RESIZE_WIDTH: u32 = 256;
     const RESIZE_HEIGHT: u32 = 256;
 
-    // let pixel_type: PixelType = guess_pixel_type(&image).unwrap_or_else(|| {
-    //     println!("[ERROR @ create_profile2::resize_image_fast]  Could not get PixelType for icon image with ColorType {:?}.", image.color());
-    //     PixelType::U8x4
-    // });
     let (source_width, source_height): (u32, u32) = image.dimensions();
     let source_image_rgba8 = image.to_rgba8();
 
