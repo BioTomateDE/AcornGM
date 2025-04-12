@@ -43,7 +43,7 @@ struct MyApp {
     current_working_dir: PathBuf,
     device_info: DeviceInfo,
     profiles: Vec<Profile>,
-    access_token: Arc<RwLock<Option<String>>>,
+    access_token: Option<String>,
     active_scene: SceneType,
     color_text1: Color,
     color_text2: Color,
@@ -83,7 +83,7 @@ impl Application for MyApp {
             current_working_dir,
             device_info,
             profiles,
-            access_token: Arc::new(RwLock::new(None)),   // TODO load from file
+            access_token: None,   // TODO load from file
             active_scene: SceneType::HomePage(SceneHomePage {}),
             color_text1: Color::from_rgb8(231, 227, 213),
             color_text2: Color::from_rgb8(147, 146, 145),

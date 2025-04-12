@@ -45,8 +45,7 @@ impl MyApp {
                     return Command::none();
                 }
 
-                let access_token_arc = self.access_token.read().expect("Could not get access token RwLock reader");
-                if access_token_arc.as_ref().is_none() {
+                if self.access_token.is_none() {
                     scene.request_listener_active;
                 }
             },
@@ -81,40 +80,32 @@ impl MyApp {
                     access_token: String,
                 }
 
+                let mut body = HashMap::new();
+                body.insert("temp_login_token", scene.temp_login_token.clone());
+                body.insert("device_info", serde_json::to_string(&self.device_info).expect("Could not convert device info to json"));
 
-                tokio::task::spawn(async move {
-                    let temp_login_token: String = scene.temp_login_token.clone();
-                    let device_info: DeviceInfo = self.device_info.clone();
-                    let access_token = self.access_token.read().expect("Could not get RwLock reader");
-                    let mut access_token_arc: Option<&String> = access_token.as_ref();
+                let client = ReqClient::new();
+                let response = client
+                    .post(format!("{ACORN_BASE_URL}/api/access_token"))
+                    .json(&body)
+                    .send();
 
-                    let mut body = HashMap::new();
-                    body.insert("temp_login_token", temp_login_token);
-                    body.insert("device_info", serde_json::to_string(&device_info).expect("Could not convert device info to json"));
+                if self.access_token.is_some() { return Command::none() }
 
-                    let client = reqwest::Client::new();
-                    let response = client
-                        .post(format!("{ACORN_BASE_URL}/api/access_token"))
-                        .json(&body)
-                        .send()
-                        .await;
+                if let Err(e) = response {
+                    println!("[ERROR @ <async task>login::update]  Could not get access token from AcornGM server: {e}");
+                    return Command::none()
+                }
+                let resp: reqwest::Result<MyResponseJson> = response.unwrap().json();
+                if let Err(e) = resp {
+                    println!("[ERROR @ <async task>login::update]  Could not get json from response: {e}");
+                    return Command::none()
+                }
 
-                    if access_token_arc.is_some() { return }
-
-                    if let Err(e) = response {
-                        println!("[ERROR @ <async task>login::update]  Could not get access token from AcornGM server: {e}");
-                        return
-                    }
-                    let resp: reqwest::Result<MyResponseJson> = response.unwrap().json().await;
-                    if let Err(e) = resp {
-                        println!("[ERROR @ <async task>login::update]  Could not get json from response: {e}");
-                        return
-                    }
-                    // TODO check if this arc writing actually works
-                    let access_token: String = resp.unwrap().access_token;
-                    println!("[INFO @ <async task>login::update]  Got access token: {access_token}");
-                    access_token_arc = Some(&access_token);
-                });
+                // request success; access token aquired
+                let access_token = resp.unwrap().access_token;
+                println!("[INFO @ <async task>login::update]  Got access token: {access_token}");
+                self.access_token = Some(access_token);
             }
             _ => {},
         }
@@ -123,8 +114,7 @@ impl MyApp {
 
     pub fn view_login(&self, scene: &SceneLogin) -> Element<Msg> {
         let mut status_string: &'static str = "Idle";
-        let access_token_arc = self.access_token.read().expect("Could not get RwLock reader");
-        if access_token_arc.as_ref().is_some() {
+        if self.access_token.is_some() {
             status_string = "Success";
         }
         if scene.request_listener_active {
