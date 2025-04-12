@@ -1,58 +1,54 @@
-use std::path::PathBuf;
-use iced::{alignment, Element};
+use std::collections::HashMap;
+use std::time::Instant;
+use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button};
 use crate::{Msg, MyApp, SceneType};
 use webbrowser;
 use crate::default_file_paths::show_msgbox;
-use crate::utility::BASE_URL;
-use getrandom;
-use base64::prelude::*;
+use cli_clipboard::ClipboardProvider;
+use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
+use crate::utility::{DeviceInfo, ACORN_BASE_URL};
+use reqwest::blocking::Client as ReqClient;
 
 #[derive(Debug, Clone)]
 pub enum MsgLogin {
     BackToHomepage,
-    LoginExternal,
     Next,
+    LoginExternal,
+    CopyLink,
+    SubRequestAccessToken(Instant),
 }
 
 #[derive(Default, Debug, Clone)]
 pub struct SceneLogin {
-    pub temp_login_token: Option<String>,
-    pub status_string: &'static str,
+    pub temp_login_token: String,
+    pub url: String,
+    pub request_listener_active: bool,
 }
 
 
 impl MyApp {
-    pub fn update_login(&mut self, message: Msg) -> iced::Command<Msg> {
+    pub fn update_login(&mut self, message: Msg) -> Command<Msg> {
         let scene: &mut SceneLogin = match &mut self.active_scene {
             SceneType::Login(scene) => scene,
             _ => {
                 println!("[ERROR @ login::update]  Could not extract scene: {:?}", self.active_scene);
-                return iced::Command::none();
+                return Command::none();
             }
         };
 
         match message {
             Msg::Login(MsgLogin::LoginExternal) => {
-                let mut buf = [0u8; 64];
-                if getrandom::fill(&mut buf).is_err() {
-                    show_msgbox("Error while logging in", "Could not generate temporary login token.");
-                    return iced::Command::none();
-                };
-                let temp_login_token: String = BASE64_URL_SAFE.encode(buf);
-
-                if webbrowser::open( &format!("{}login.html?tempLoginToken={}", BASE_URL, temp_login_token)).is_err() {
+                if webbrowser::open(&scene.url).is_err() {
                     show_msgbox("Error while logging in", "Could not open URL to log in.");
-                    return iced::Command::none();
+                    return Command::none();
                 }
-                scene.temp_login_token = Some(temp_login_token.clone());
 
-                if scene.status_string != "Browser opened" {
-                    show_msgbox("stub", "stub");
-                    // std::thread::spawn(move || check_callback(&temp_login_token));
-                };
-                scene.status_string = "Browser opened";
+                let access_token_arc = self.access_token.read().expect("Could not get access token RwLock reader");
+                if access_token_arc.as_ref().is_none() {
+                    scene.request_listener_active;
+                }
             },
 
             Msg::Login(MsgLogin::BackToHomepage) => {
@@ -60,32 +56,81 @@ impl MyApp {
             },
 
             Msg::Login(MsgLogin::Next) => {
-                let access_token_file_path: PathBuf = self.home_dir.join("./access_token.txt");
-                if !access_token_file_path.is_file() {
-                    // server didn't respond yet
-                    show_msgbox("Login is in process", "Login process is not done yet! Please complete it in your browser.");
-                    return iced::Command::none();
-                }
+                self.active_scene = SceneType::HomePage(SceneHomePage {});
+            },
 
-                let access_token: String = match std::fs::read_to_string(access_token_file_path) {
-                    Ok(text) => text,
+            Msg::Login(MsgLogin::CopyLink) => {
+                match cli_clipboard::ClipboardContext::new() {
+                    Ok(mut ctx) => {
+                        if let Err(error) = ctx.set_contents(scene.url.clone()) {
+                            println!("[ERROR @ login::update]  Could not set contents of clipboard: {error}");
+                        } else {
+                            println!("[INFO @ login::update]  Set contents of clipboard to {}", scene.url);
+                        }
+                    },
                     Err(error) => {
-                        show_msgbox("Error reading file", &format!("Could not read access token file: {error}"));
-                        return iced::Command::none();
+                        println!("[ERROR @ login::update]  Could not initialize clipboard: {error}");
+                        return Command::none();
                     },
                 };
-                let access_token: &str = access_token.trim();
-                println!("Access Token: {access_token}");
-                scene.status_string = "Success";
-
-                // self.active_scene = SceneType::HomePage(SceneHomePage {});
             },
+
+            Msg::Login(MsgLogin::SubRequestAccessToken(_)) => {
+                #[derive(Debug, Clone, Deserialize)]
+                struct MyResponseJson {
+                    access_token: String,
+                }
+
+
+                tokio::task::spawn(async move {
+                    let temp_login_token: String = scene.temp_login_token.clone();
+                    let device_info: DeviceInfo = self.device_info.clone();
+                    let access_token = self.access_token.read().expect("Could not get RwLock reader");
+                    let mut access_token_arc: Option<&String> = access_token.as_ref();
+
+                    let mut body = HashMap::new();
+                    body.insert("temp_login_token", temp_login_token);
+                    body.insert("device_info", serde_json::to_string(&device_info).expect("Could not convert device info to json"));
+
+                    let client = reqwest::Client::new();
+                    let response = client
+                        .post(format!("{ACORN_BASE_URL}/api/access_token"))
+                        .json(&body)
+                        .send()
+                        .await;
+
+                    if access_token_arc.is_some() { return }
+
+                    if let Err(e) = response {
+                        println!("[ERROR @ <async task>login::update]  Could not get access token from AcornGM server: {e}");
+                        return
+                    }
+                    let resp: reqwest::Result<MyResponseJson> = response.unwrap().json().await;
+                    if let Err(e) = resp {
+                        println!("[ERROR @ <async task>login::update]  Could not get json from response: {e}");
+                        return
+                    }
+                    // TODO check if this arc writing actually works
+                    let access_token: String = resp.unwrap().access_token;
+                    println!("[INFO @ <async task>login::update]  Got access token: {access_token}");
+                    access_token_arc = Some(&access_token);
+                });
+            }
             _ => {},
         }
-        iced::Command::none()
+        Command::none()
     }
 
     pub fn view_login(&self, scene: &SceneLogin) -> Element<Msg> {
+        let mut status_string: &'static str = "Idle";
+        let access_token_arc = self.access_token.read().expect("Could not get RwLock reader");
+        if access_token_arc.as_ref().is_some() {
+            status_string = "Success";
+        }
+        if scene.request_listener_active {
+            status_string = "In Browser";
+        }
+
         let main_content = container(
             column![
                 column![
@@ -96,12 +141,22 @@ impl MyApp {
                         After you're done, return to this window and click the 'Next' button."
                     ).size(14).style(self.color_text1),
                     text("").size(4),
-                    button("Open Browser").on_press(Msg::Login(MsgLogin::LoginExternal)),
-                    text("").size(10),
+                    row![
+                        button("Open Browser").on_press(Msg::Login(MsgLogin::LoginExternal)),
+                        text("   ").size(10),
+                        button("Copy Link").on_press(Msg::Login(MsgLogin::CopyLink)),
+                    ],
+                    text("").size(2),
+                    column![
+                        text("Alternatively, type out this link:").style(self.color_text2),
+                        text("").size(2),
+                        text(&scene.url).style(self.color_text1),
+                    ],
+                    text("").size(4),
                     row![
                         text("Status:").style(self.color_text2),
-                        text("    ").size(10),
-                        text(&scene.status_string),
+                        text("   ").size(10),
+                        text(status_string),
                     ]
                     ].spacing(10),
                 ]
@@ -143,95 +198,3 @@ impl MyApp {
 }
 
 
-
-// // warning: terrible code
-// fn check_callback(temp_login_token: &str) -> Result<(), reqwest::Error> {
-//     // check if already running
-//     match get_thread_info() {
-//         Err(error) => {
-//             println!("[ERROR @ <thread>login::check_callback]  Error getting thread info: {error}");
-//             return Ok(());
-//         }
-//         Ok(thread_info) => {
-//             if thread_info == "running" {
-//                 println!("[INFO @ <thread>login::check_callback]  Didn't start this thread as it's already running.");
-//                 return Ok(());
-//             }
-//         }
-//     };
-//
-//     // set to running
-//     if let Err(error) = write_thread_info("running") {
-//         println!("[ERROR @ <thread>login::check_callback]  Error writing to thread info file: {error}");
-//     };
-//
-//     // get callback in interval
-//     loop {
-//         // Check if cancelled
-//         match get_thread_info() {
-//             Err(error) => {
-//                 println!("[ERROR @ <thread>login::check_callback]  Error getting thread info: {error}");
-//                 return Ok(());
-//             }
-//             Ok(thread_info) => {
-//                 if thread_info == "cancel" {
-//                     println!("[INFO @ <thread>login::check_callback]  Cancelled.");
-//                     if let Err(error) = delete_thread_info() {
-//                         println!("[ERROR @ <thread>login::check_callback]  Error deleting thread info file: {error}");
-//                     };
-//                     return Ok(());
-//                 }
-//             }
-//         };
-//
-//         std::thread::sleep(core::time::Duration::from_millis(420));
-//         let text = reqwest::blocking::get(format!("{BASE_URL}check_callback?tempLoginToken={temp_login_token}"))?.text()?;
-//         // println!("{temp_login_token} | {text}");
-//
-//         if text != "" && text != "no" {
-//             // write to file
-//             let access_token_file_path: PathBuf = home_dir.join("./access_token.txt");
-//             if let Err(error) = std::fs::write(access_token_file_path, text) {
-//                 println!("[ERROR @ <thread>login::check_callback]  Error writing to access token code file: {error}");
-//             };
-//             return Ok(())
-//         }
-//     }
-// }
-
-
-// fn get_thread_info() -> Result<String, String> {
-//     let thread_info_file_path: PathBuf = home_dir.join("./temp_thread_login.txt");
-//     if !thread_info_file_path.exists() {
-//         return Ok("idle".to_string())
-//     }
-//
-//     match std::fs::read_to_string(thread_info_file_path) {
-//         Ok(thread_info) => Ok(thread_info),
-//         Err(error) => Err(format!("Could not read callback thread info file: {error}"))
-//     }
-// }
-//
-// fn write_thread_info(status: &str) -> Result<(), String> {
-//     let thread_info_file_path: PathBuf = home_dir.join("./temp_thread_login.txt");
-//     if !thread_info_file_path.exists() {
-//         return Ok(())
-//     }
-//
-//     match std::fs::write(thread_info_file_path, status) {
-//         Ok(_) => Ok(()),
-//         Err(error) => Err(format!("Could not write to callback thread info file: {error}"))
-//     }
-// }
-//
-// fn delete_thread_info() -> Result<(), String> {
-//     let thread_info_file_path: PathBuf = home_dir.join("./temp_thread_login.txt");
-//     if !thread_info_file_path.exists() {
-//         return Ok(())
-//     }
-//
-//     match std::fs::remove_file(thread_info_file_path) {
-//         Ok(_) => Ok(()),
-//         Err(error) => Err(format!("Could not delete callback thread info file: {error}"))
-//     }
-// }

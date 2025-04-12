@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 pub fn get_default_icon_image(cwd: &PathBuf) -> Handle {
@@ -49,8 +50,7 @@ impl button::StyleSheet for TransparentButton {
     }
 }
 
-pub static BASE_URL: &'static str = "https://acorngmbackend.onrender.com";
-
+pub const ACORN_BASE_URL: &'static str = "https://acorngm.onrender.com";
 
 #[derive(Debug)]
 pub struct ParseVersionError;
@@ -132,4 +132,23 @@ pub enum PlatformType {
     Android,
     IOS,
     // Other(String),
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DeviceInfo {
+    pub host_name: String,
+    pub distro_pretty: String,
+    pub platform_pretty: String,
+    pub desktop_environment_pretty: String,
+    pub cpu_architecture: String,
+}
+
+pub fn get_device_info() -> DeviceInfo {
+    DeviceInfo {
+        host_name: whoami::fallible::hostname().unwrap_or_else(|_| "<unknown hostname>".to_string()),
+        distro_pretty: whoami::fallible::distro().unwrap_or_else(|_| "<unknown distro>".to_string()),
+        platform_pretty: whoami::platform().to_string(),
+        desktop_environment_pretty: whoami::desktop_env().to_string(),
+        cpu_architecture: whoami::arch().to_string(),
+    }
 }

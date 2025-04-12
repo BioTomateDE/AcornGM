@@ -3,7 +3,9 @@ mod utility;
 mod default_file_paths;
 
 use std::path::PathBuf;
-use iced::{Application, Color, Command, Font, Pixels, Size};
+use std::sync::{Arc, RwLock};
+use std::time::Duration;
+use iced::{time, Application, Color, Command, Font, Pixels, Size, Subscription};
 use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use iced::Settings;
@@ -11,6 +13,7 @@ use crate::default_file_paths::get_home_directory;
 use crate::scenes::create_profile2::MsgCreateProfile2;
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
+use crate::utility::{get_device_info, DeviceInfo};
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -38,7 +41,9 @@ struct MyApp {
     flags: MyAppFlags,
     home_dir: PathBuf,
     current_working_dir: PathBuf,
+    device_info: DeviceInfo,
     profiles: Vec<Profile>,
+    access_token: Arc<RwLock<Option<String>>>,
     active_scene: SceneType,
     color_text1: Color,
     color_text2: Color,
@@ -70,12 +75,15 @@ impl Application for MyApp {
             },
         };
         let profiles: Vec<Profile> = load_profiles(&home_dir);
+        let device_info: DeviceInfo = get_device_info();
 
         let ts: MyApp = Self {
             flags,
             home_dir,
             current_working_dir,
+            device_info,
             profiles,
+            access_token: Arc::new(RwLock::new(None)),   // TODO load from file
             active_scene: SceneType::HomePage(SceneHomePage {}),
             color_text1: Color::from_rgb8(231, 227, 213),
             color_text2: Color::from_rgb8(147, 146, 145),
@@ -107,6 +115,17 @@ impl Application for MyApp {
     }
     fn theme(&self) -> iced::Theme {
         iced::Theme::GruvboxDark
+    }
+    fn subscription(&self) -> Subscription<Msg> {
+        if let SceneType::Login(scene) = &self.active_scene {
+            if scene.request_listener_active {
+                return time::every(Duration::new(3, 0))
+                    .map(MsgLogin::SubRequestAccessToken)
+                    .map(|i| Msg::Login(i))
+            }
+        }
+        Subscription::none()
+
     }
 }
 

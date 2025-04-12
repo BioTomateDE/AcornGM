@@ -1,3 +1,4 @@
+use crate::utility::ACORN_BASE_URL;
 use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
@@ -69,9 +70,13 @@ impl MyApp {
             },
 
             Msg::HomePage(MsgHomePage::Login) => {
+                let temp_login_token: String = uuid::Uuid::new_v4().to_string();
+                let url: String = format!("{ACORN_BASE_URL}/goto_discord_auth?temp_login_token={}", temp_login_token);
+
                 self.active_scene = SceneType::Login(SceneLogin {
-                    temp_login_token: None,
-                    status_string: "Idle",
+                    temp_login_token,
+                    url,
+                    request_listener_active: false,
                 });
             },
 
