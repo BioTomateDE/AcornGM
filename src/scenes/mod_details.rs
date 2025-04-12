@@ -1,11 +1,10 @@
 use iced::{Color, Command, Element};
-use iced::widget::{container, column, text_input, Container, row, button, text, checkbox, scrollable, Image};
+use iced::widget::{container, column, row, text, Image};
 use crate::Msg;
 use crate::scenes::view_profile::AcornMod;
 
 #[derive(Debug, Clone)]
-pub enum MsgModDetails {
-}
+pub enum MsgModDetails {}
 
 #[derive(Default, Debug, Clone)]
 pub struct ModDetails {

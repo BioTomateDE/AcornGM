@@ -127,7 +127,7 @@ impl MyApp {
             },
 
             Msg::ViewProfile(MsgViewProfile::ViewModDetails(acorn_mod)) => {
-                // stub
+                scene.mod_details.acorn_mod = Some(acorn_mod);
             },
 
             Msg::ViewProfile(MsgViewProfile::LaunchGame) => {

@@ -12,11 +12,10 @@ use crate::utility::{get_default_icon_image, GameInfo, GameType, TransparentButt
 use serde;
 use crate::scenes::browser::ModBrowser;
 use crate::scenes::login::SceneLogin;
-use crate::scenes::view_profile::{AcornMod, SceneViewProfile};
+use crate::scenes::view_profile::SceneViewProfile;
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {
-    ProfilesLoaded(Vec<Profile>),
     CreateProfile,
     LoadProfile(usize),
     Login,
@@ -39,7 +38,6 @@ impl MyApp {
                     game_name: "".to_string(),
                     game_version_str: "".to_string(),
                     is_game_version_valid: true,        // to hide error when no data file is loaded
-                    currently_loading_data_file: false,
                 });
             },
 

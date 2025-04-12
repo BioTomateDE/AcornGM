@@ -3,7 +3,6 @@ mod utility;
 mod default_file_paths;
 
 use std::path::PathBuf;
-use std::sync::{Arc, RwLock};
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Font, Pixels, Size, Subscription};
 use crate::scenes::create_profile1::{MsgCreateProfile1, SceneCreateProfile};

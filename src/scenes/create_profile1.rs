@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::time::Instant;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput, Image};
 use iced::widget::image::Handle;
@@ -26,7 +25,6 @@ pub struct SceneCreateProfile {
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
     pub game_version_str: String,
     pub is_game_version_valid: bool,
-    pub currently_loading_data_file: bool,
 }
 
 impl MyApp {

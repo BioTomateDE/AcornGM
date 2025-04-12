@@ -4,7 +4,6 @@ use iced::{alignment, Command, Element};
 use iced::advanced::image::Data;
 use iced::widget::{container, column, text, row, button, TextInput};
 use image::{DynamicImage, GenericImageView};
-use sha256;
 use crate::{Msg, MyApp, SceneType, WINDOW_SIZE_VIEW_PROFILE};
 use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
 use crate::scenes::create_profile1::SceneCreateProfile;

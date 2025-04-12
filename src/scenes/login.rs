@@ -8,7 +8,7 @@ use crate::default_file_paths::show_msgbox;
 use cli_clipboard::ClipboardProvider;
 use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{DeviceInfo, ACORN_BASE_URL};
+use crate::utility::ACORN_BASE_URL;
 use reqwest::blocking::Client as ReqClient;
 
 #[derive(Debug, Clone)]
