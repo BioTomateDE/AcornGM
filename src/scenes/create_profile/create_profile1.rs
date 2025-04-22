@@ -1,11 +1,13 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput, Image};
 use iced::widget::image::Handle;
-use crate::{Msg, MyApp, SceneType};
+use log::error;
+use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::GameInfo;
 use crate::default_file_paths::get_default_image_prompt_path;
+use crate::scenes::create_profile::{check_profile_name_valid, SceneCreateProfile};
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
@@ -15,45 +17,33 @@ pub enum MsgCreateProfile1 {
     EditProfileIcon,
 }
 
-#[derive(Debug, Clone)]
-pub struct SceneCreateProfile {
-    pub profile_name: String,
-    pub is_profile_name_valid: bool,
-    pub icon: Handle,
-    pub data_file_path: String,
-    pub game_info: GameInfo,
-    pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
-    pub game_version_str: String,
-    pub is_game_version_valid: bool,
-}
-
-impl MyApp {
-    pub fn update_create_profile1(&mut self, message: Msg) -> Command<Msg> {
-        let scene: &mut SceneCreateProfile = match &mut self.active_scene {
-            SceneType::CreateProfile1(scene) => scene,
-            _ => {
-                println!("[ERROR @ create_profile1::update]  Could not extract scene: {:?}", self.active_scene);
-                return Command::none();
+impl SceneCreateProfile {
+    pub fn update1(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
+        let message: MsgCreateProfile1 = match message {
+            Msg::CreateProfile1(msg) => msg,
+            other => {
+                error!("Invalid message type {other:?}");
+                return Command::none()
             }
         };
 
         match message {
-            Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage) => {
-                self.active_scene = SceneType::HomePage(SceneHomePage {});
+            MsgCreateProfile1::BackToHomepage => {
+                app.active_scene = Arc::new(SceneType::HomePage(SceneHomePage {}));
             },
-            Msg::CreateProfile1(MsgCreateProfile1::StepNext) => {
-                if scene.is_profile_name_valid {
-                    self.active_scene = SceneType::CreateProfile2(scene.clone())
+            MsgCreateProfile1::StepNext => {
+                if self.is_profile_name_valid {
+                    self.stage = 2;
                 }
             }
-            Msg::CreateProfile1(MsgCreateProfile1::EditProfileName(profile_name)) => {
-                scene.is_profile_name_valid = check_profile_name_valid(&profile_name);
-                scene.profile_name = profile_name;
+            MsgCreateProfile1::EditProfileName(profile_name) => {
+                self.is_profile_name_valid = check_profile_name_valid(&profile_name);
+                self.profile_name = profile_name;
             }
-            Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon) => {
+            MsgCreateProfile1::EditProfileIcon => {
                 let default_origin_path: PathBuf = get_default_image_prompt_path().unwrap_or_else(|error| {
                     println!("[WARN @ create_profile1::update]  Could not get default image prompt path: {error}");
-                    self.current_working_dir.clone()
+                    app.app_root.clone()
                 });
 
                 let image_path = native_dialog::FileDialog::new()
@@ -72,44 +62,34 @@ impl MyApp {
                     println!("[WARN @ create_profile1::update]  Specified image path for icon doesn't exist: {}", image_path.display());
                     return Command::none()
                 }
-                scene.icon = Handle::from_path(image_path);
-
-            },
-            _ => {},
+                self.icon = Handle::from_path(image_path);
+            }
         }
         Command::none()
     }
 
-    pub fn view_create_profile1(&self, scene_create_profile: &SceneCreateProfile) -> Element<Msg> {
-        let scene: &SceneCreateProfile = match &self.active_scene {
-            SceneType::CreateProfile1(scene) => scene,
-            _ => {
-                println!("[ERROR @ create_profile1::update]  Could not extract scene: {:?}", self.active_scene);
-                return column![text("Error (look in logs)")].into()
-            }
-        };
-
+    pub fn view1(&self, _app: &MyApp) -> Element<Msg> {
         let profile_name_valid = text(
-            if scene_create_profile.is_profile_name_valid {""} else {"Invalid Profile Name"}
-        ).size(12).style(self.color_text_red);
+            if self.is_profile_name_valid {""} else {"Invalid Profile Name"}
+        ).size(12).style(*COLOR_TEXT_RED);
 
-        let icon: Image<Handle> = Image::new(scene.icon.clone());
+        let icon: Image<Handle> = Image::new(self.icon.clone());
 
         let main_content = container(
             iced::widget::column![
                 column![
-                    text("Create New Profile").size(22).style(self.color_text1),
+                    text("Create New Profile").size(22).style(*COLOR_TEXT1),
                     text("").size(10),
-                    text("Profile Name").size(14).style(self.color_text2),
+                    text("Profile Name").size(14).style(*COLOR_TEXT2),
                     text("").size(4),
                     TextInput::new(
                         "My Profile",
-                        &scene_create_profile.profile_name
+                        &self.profile_name
                     ).on_input(|string| Msg::CreateProfile1(MsgCreateProfile1::EditProfileName(string))),
                     text("").size(4),
                     profile_name_valid,
                     text("").size(10),
-                    text("Profile Icon").size(14).style(self.color_text2),
+                    text("Profile Icon").size(14).style(*COLOR_TEXT2),
                     text("").size(4),
                     button(icon.height(100)).on_press(Msg::CreateProfile1(MsgCreateProfile1::EditProfileIcon)),
                 ]
@@ -150,13 +130,5 @@ impl MyApp {
         )
             .into()
     }
-}
-
-
-pub fn check_profile_name_valid(profile_name: &str) -> bool {
-    let profile_name: &str = profile_name.trim();
-
-    profile_name.len() < 100 &&
-    profile_name.len() > 0
 }
 

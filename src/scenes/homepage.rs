@@ -1,18 +1,16 @@
-use crate::utility::ACORN_BASE_URL;
+mod homepage1;
+
 use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
-use iced::{alignment, Color, Command, Element};
-use iced::widget::{button, column, container, row, scrollable, text, Container, Image};
+use iced::{Color, Element};
+use iced::widget::{button, column, container, row, text, Container, Image};
 use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
-use crate::{Msg, MyApp, SceneCreateProfile, SceneType, WINDOW_SIZE_VIEW_PROFILE};
+use crate::Msg;
 use crate::default_file_paths::{show_msgbox};
-use crate::utility::{get_default_icon_image, GameInfo, GameType, TransparentButton, Version};
+use crate::utility::{GameInfo, GameType, TransparentButton, Version};
 use serde;
-use crate::scenes::browser::ModBrowser;
-use crate::scenes::login::SceneLogin;
-use crate::scenes::view_profile::SceneViewProfile;
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {
@@ -24,123 +22,6 @@ pub enum MsgHomePage {
 
 #[derive(Debug, Clone)]
 pub struct SceneHomePage;
-
-impl MyApp {
-    pub fn update_homepage(&mut self, message: Msg) -> Command<Msg> {
-        match message {
-            Msg::HomePage(MsgHomePage::CreateProfile) => {
-                self.active_scene = SceneType::CreateProfile1(SceneCreateProfile {
-                    profile_name: "My Profile".to_string(),
-                    is_profile_name_valid: true,
-                    icon: get_default_icon_image(&self.current_working_dir),
-                    data_file_path: "".to_string(),
-                    game_info: GameInfo::default(),
-                    game_name: "".to_string(),
-                    game_version_str: "".to_string(),
-                    is_game_version_valid: true,        // to hide error when no data file is loaded
-                });
-            },
-
-            Msg::HomePage(MsgHomePage::LoadProfile(index)) => {
-                // load wingdings font
-                if let Some(profile) = self.profiles.get(index) {
-                    self.active_scene = SceneType::ViewProfile(SceneViewProfile {
-                        mods: vec![],
-                        profile: profile.clone(),
-                        browser: ModBrowser {
-                            search_query: "".to_string(),
-                            use_regex: false,
-                            results: vec![],
-                            show_only_compatible: true,
-                        },
-                        mod_details: Default::default(),
-                    })
-                }
-                // let command: Command<Result<(), !>> = match get_local_font("wingdings") {
-                //     Ok(command) => command,
-                //     Err(error) => {
-                //         show_msgbox("Error while loading font", &format!("Could not load wingdings font: {error}"));
-                //         return Command::none()
-                //     }
-                // };
-                // return command
-                return iced::window::resize(self.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
-            },
-
-            Msg::HomePage(MsgHomePage::Login) => {
-                let temp_login_token: String = uuid::Uuid::new_v4().to_string();
-                let url: String = format!("{ACORN_BASE_URL}/goto_discord_auth?temp_login_token={}", temp_login_token);
-
-                self.active_scene = SceneType::Login(SceneLogin {
-                    temp_login_token,
-                    url,
-                    request_listener_active: false,
-                });
-            },
-
-            _ => {},
-        }
-        Command::none()
-    }
-
-    pub fn view_homepage(&self) -> Element<Msg> {
-        let mut profiles: Vec<Element<Msg>> = Vec::new();
-        for (_i, profile) in self.profiles.iter().enumerate() {
-            profiles.push(profile.view(self.color_text1, self.color_text2));
-            // if i != self.profiles.len() - 1 {    // if not last elem, push divider
-            //     profiles.push(create_divider())
-            // }
-            profiles.push(create_divider())
-        }
-        let profiles: Container<Msg> = container(column(profiles).spacing(5)).style(list_style);
-
-        let main_content = container(
-            iced::widget::column![
-                column![
-                    text("").size(10),
-                    text("AcornGM").size(28).style(self.color_text1),
-                    text("").size(6),
-                    text("Recent Profiles").size(14).style(self.color_text2).horizontal_alignment(alignment::Horizontal::Center),
-                    text("").size(6),
-                    scrollable(profiles).height(500),
-                ]
-                .padding(20)
-            ]
-        ).align_x(alignment::Horizontal::Left);
-
-        let button_bar = container(
-            row![
-                container(
-                    row![
-                        text("    ").size(10),
-                        button("Login").on_press(Msg::HomePage(MsgHomePage::Login)),
-                    ]
-                    .spacing(10)
-                ),
-                text("                                                               ").size(19),
-                container(
-                     row![
-                        button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)),
-                        text("    ").size(10),
-                    ]
-                    .spacing(10)
-                )
-            ]
-        )
-            .width(900);
-
-        container(
-            column![
-                column![
-                    main_content,
-                ]
-                .height(460),
-                button_bar
-            ]
-        )
-            .into()
-    }
-}
 
 #[derive(Debug, Clone)]
 pub struct Profile {

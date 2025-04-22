@@ -1,6 +1,6 @@
-use iced::{Color, Command, Element};
+use iced::{Command, Element};
 use iced::widget::{container, column, row, text, Image};
-use crate::Msg;
+use crate::{Msg, COLOR_TEXT1, COLOR_TEXT2};
 use crate::scenes::view_profile::AcornMod;
 
 #[derive(Debug, Clone)]
@@ -11,11 +11,11 @@ pub struct ModDetails {
     pub acorn_mod: Option<AcornMod>,
 }
 impl ModDetails {
-    pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
+    pub fn view(&self) -> Element<Msg> {
         if self.acorn_mod.is_none() {
             return container(
                 column![
-                    text("Select a mod from the browser or from your profile's mod list").size(24).style(color_text2),
+                    text("Select a mod from the browser or from your profile's mod list").size(24).style(*COLOR_TEXT2),
                 ],
             )
                 .height(400)
@@ -29,43 +29,21 @@ impl ModDetails {
             column![
                 row![
                     icon,   // height and width should be capped beforehand
-                    text(&acorn_mod.name).size(24).style(color_text1),
+                    text(&acorn_mod.name).size(24).style(*COLOR_TEXT1),
                 ],
                 text("").size(6),
                 row![
-                    text("Author").size(12).style(color_text2).width(80),
-                    text(&acorn_mod.author_name).size(16).style(color_text1),
+                    text("Author").size(12).style(*COLOR_TEXT2).width(80),
+                    text(&acorn_mod.author_name).size(16).style(*COLOR_TEXT1),
                 ],
                 row![
-                    text("Mod Version").size(12).style(color_text2).width(80),
-                    text(acorn_mod.mod_version.to_string()).size(16).style(color_text1),
+                    text("Mod Version").size(12).style(*COLOR_TEXT2).width(80),
+                    text(acorn_mod.mod_version.to_string()).size(16).style(*COLOR_TEXT1),
                 ],
             ]
         )
             .height(400)
             .into()
-    }
-
-    pub fn update(&mut self, message: MsgModDetails) -> Command<Msg> {
-        // match message {
-        //     MsgBrowser::PerformSearch => {
-        //         // stub
-        //     },
-        //
-        //     MsgBrowser::ToggleRegex(use_regex) => {
-        //         self.use_regex = use_regex;
-        //     },
-        //
-        //     MsgBrowser::EditSearchQuery(string) => {
-        //         self.search_query = string;
-        //     },
-        //
-        //     MsgBrowser::ToggleOnlyCompatible(show_only_compatible) => {
-        //         self.show_only_compatible = show_only_compatible;
-        //     },
-        // }
-
-        Command::none()
     }
 }
 

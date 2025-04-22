@@ -1,4 +1,4 @@
-use iced::{Color, Command, Element};
+use iced::{ Command, Element};
 use iced::widget::{container, column, text_input, Container, row, button, text, checkbox, scrollable};
 use crate::Msg;
 use crate::scenes::homepage::list_style;
@@ -20,10 +20,10 @@ pub struct ModBrowser {
     pub show_only_compatible: bool,
 }
 impl ModBrowser {
-    pub fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
+    pub fn view(&self) -> Element<Msg> {
         let results: Container<Msg> = container(
             column(
-                self.results.iter().map(|i| i.view(color_text1, color_text2))
+                self.results.iter().map(|i| i.view())
             ).spacing(5)
         )
             .width(415)
