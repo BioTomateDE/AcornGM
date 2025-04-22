@@ -3,7 +3,7 @@ use std::sync::Arc;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput, Image};
 use iced::widget::image::Handle;
-use log::error;
+use log::{error, info, warn};
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
 use crate::scenes::homepage::SceneHomePage;
 use crate::default_file_paths::get_default_image_prompt_path;
@@ -41,28 +41,7 @@ impl SceneCreateProfile {
                 self.profile_name = profile_name;
             }
             MsgCreateProfile1::EditProfileIcon => {
-                let default_origin_path: PathBuf = get_default_image_prompt_path().unwrap_or_else(|error| {
-                    println!("[WARN @ create_profile1::update]  Could not get default image prompt path: {error}");
-                    app.app_root.clone()
-                });
-
-                let image_path = native_dialog::FileDialog::new()
-                    .set_location(&default_origin_path)
-                    .add_filter("Image", &["png", "jpg", "jpeg", "webp", "gif"])
-                    .show_open_single_file();
-                let image_path = match image_path {
-                    Ok(ok) => ok,
-                    Err(error) => { println!("[WARN @ create_profile1::update]  Could not get path from file picker: {}", error); return Command::none(); }
-                };
-                let image_path: PathBuf = match image_path {
-                    Some(ok) => ok,
-                    None => { println!("[WARN @ create_profile1::update]  Path from file picker is empty"); return Command::none();}
-                };
-                if !image_path.is_file() {
-                    println!("[WARN @ create_profile1::update]  Specified image path for icon doesn't exist: {}", image_path.display());
-                    return Command::none()
-                }
-                self.icon = Handle::from_path(image_path);
+                self.edit_profile_icon(app)
             }
         }
         Command::none()
@@ -129,6 +108,39 @@ impl SceneCreateProfile {
             ]
         )
             .into()
+    }
+}
+
+impl SceneCreateProfile {
+    fn edit_profile_icon(&mut self, app: &MyApp) {
+        let origin_path: PathBuf = get_default_image_prompt_path().unwrap_or_else(|e| {
+            warn!("Could not get default image prompt path: {e}");
+            app.app_root.clone()
+        });
+
+        // this blocks main thread
+        // TODO threading
+        let image_path: Option<PathBuf> = rfd::FileDialog::new()
+            .set_title("Pick an image for your AcornGM Profile icon")
+            .add_filter("Image", &["png", "jpg", "jpeg", "webp", "gif"])
+            .set_directory(origin_path)
+            .pick_file();
+        
+        let image_path: PathBuf = match image_path {
+            Some(path) => path,
+            None => {
+                info!("User did not pick an image file for the profile icon and instead cancelled the operation.");
+                return;
+            }
+        };
+        
+        if !image_path.is_file() {
+            warn!("Specified image path for profile icon doesn't exist: {}", image_path.display());
+            return;
+        }
+        
+        // success, set profile icon
+        self.icon = Handle::from_path(image_path);
     }
 }
 

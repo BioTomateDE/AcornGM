@@ -1,80 +1,77 @@
-use std::path::PathBuf;
-use dialog::DialogBox;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use biologischer_log::CustomLogger;
+use log::{error, info, warn};
+use crate::utility::show_error_dialogue;
 
 pub fn get_default_image_prompt_path() -> Result<PathBuf, String> {
-    let username: String = whoami::username();
-    if username == "" {
-        return Err("Username returned by whoami::username() is empty.".to_string());
-    }
+    let username: String = whoami::fallible::username()
+        .map_err(|e| format!("Could not get username: {e}."))?;
 
     match std::env::consts::OS {
         "windows" => Ok(PathBuf::from(format!("C:/Users/{username}/Pictures/"))),
         "linux" => Ok(PathBuf::from(format!("/home/{username}/Pictures/"))),
-        other => Err(format!("Unknown or unsupported operating system \"{other}\".")),
+        // add other supported operating systems here
+        other => Err(format!("Unsupported operating system \"{other}\".")),
     }
 }
 
 pub fn get_default_home_directory() -> Result<PathBuf, String> {
-    let username: String = whoami::username();
-    if username == "" {
-        return Err("Username returned by whoami::username() is empty.".to_string());
-    }
+    let username: String = whoami::fallible::username()
+        .map_err(|e| format!("Could not get username: {e}."))?;
 
     let dir: String = match std::env::consts::OS {
         "windows" => format!("C:/Users/{username}/Documents"),
         "linux" => format!("/home/{username}/Documents"),
-        // "macos" => Ok(format!("idk, i don't use macOS")),
-        other => return Err(format!("Unknown or unsupported operating system \"{other}\".")),
+        // add other supported operating systems here
+        other => return Err(format!("Unsupported operating system \"{other}\".")),
     };
 
     let dir: PathBuf = PathBuf::from(dir);
     if !dir.is_dir() {
-        return Err(format!("Default home directory doesn't exist or is not a directory: {}", dir.to_str().unwrap()));
+        return Err(format!("Default home directory doesn't exist or is not a directory: {}", dir.display()));
     }
 
     Ok(dir.join("./AcornGM/"))
 }
 
 pub fn get_default_data_file_dir() -> Result<PathBuf, String> {
-    let username: String = whoami::username();
-    if username == "" {
-        return Err("Username returned by whoami::username() is empty.".to_string());
-    }
+    let username: String = whoami::fallible::username()
+        .map_err(|e| format!("Could not get username: {e}."))?;
 
     let path_orig: PathBuf = match std::env::consts::OS {
         "windows" => PathBuf::from(&"C:/Program Files (x86)/Steam/steamapps/common/Undertale/"),
         "linux" => PathBuf::from(format!("/home/{username}/.steam/steam/steamapps/common/Undertale/assets/")),
-        other => return Err(format!("Unknown or unsupported operating system \"{other}\".")),
+        // add other supported operating system here
+        other => return Err(format!("Unsupported operating system \"{other}\".")),
     };
 
+    // (Potentially) traverse path hierarchy upwards until the directory exists
     let mut path: PathBuf = path_orig.clone();
     while !path.exists() {
         path = match path.parent() {
             Some(p) => p.to_path_buf(),
-            None => return Err(format!("Path doesn't exist at all somehow: {:?}", path)),
+            None => return Err(format!("Path doesn't exist at all somehow: {}", path.display())),
         };
     }
     Ok(path)
 }
 
 
-static FAIL_STR: &'static str = "Everything that could've gone wrong, did go wrong. Consider getting an operating system that people actually use.";
-
-pub fn get_home_directory() -> PathBuf {
-    // try to find path in environment variables
-    match std::env::var("ACORNGM_HOME") {
-        Ok(string) => {
-            let path = PathBuf::from(string);
-            if path.is_dir() {
-                return path
-            }
-        },
-        Err(_) => {}
+pub fn get_home_directory(logger: Arc<CustomLogger>) -> PathBuf {
+    // Prioritize environment variable
+    if let Ok(string) = std::env::var("ACORNGM_HOME") {
+        let path: &Path = Path::new(&string);
+        if path.is_dir() {
+            return path.to_path_buf()
+        } else {
+            warn!("Invalid home directory path specified by environment variable (ACORNGM_HOME): {string}");
+        }
     };
     
-    // if not found, use default profile dir
+    // If not found, use default profile dir
     let error_msg: String;
-    // println!("Environment Variable for Profiles Directory (ACORNGM_HOME) not set; using default directory.");
+    info!("Environment Variable for AcornGM home directory (ACORNGM_HOME) not set; trying to use default directory.");
     match get_default_home_directory() {
         Ok(path) => {
             return path;
@@ -82,51 +79,13 @@ pub fn get_home_directory() -> PathBuf {
         Err(error) => error_msg = error,
     }
 
-    // if failed, prompt profile dir
-    show_msgbox("Set AcornGM Profiles Directory", &format!(
-        "Failed to find AcornGM profile folder: \"{error_msg}\"\
-        \nPlease enter it manually.\
-        \n\nIf this is a reoccurring issue, the program cannot set the environment variable \
-        correctly and your operating system might be unsupported (open a ticket on GitHub)."
+    // Failed; show error message and exit
+    show_error_dialogue("Error getting AcornGM home directory", &format!(
+        "Failed to find default AcornGM home folder: \"{error_msg}\"\n\
+        Please open an Issue on GitHub regarding this so your operating system can get native support.\n\
+        To fix this error, set the environment variable ACORNGM_HOME to your desired folder path."
     ));
-
-    loop {
-        let string: Option<String> = dialog::Input::new("Enter your preferred Profiles Directory: ")
-            .title("Set AcornGM Profiles Directory")
-            .show()
-            .expect(FAIL_STR);
-
-        match string {
-            None => continue,
-            Some(string) => {
-                let path = PathBuf::from(string.clone());
-                if !path.is_dir() {
-                    show_msgbox("Invalid Directory", "Your specified directory doesn't exist!");
-                    continue
-                }
-                return path
-            },
-        }
-    }
-
-}
-
-
-pub fn show_msgbox(title: &str, message: &str) {
-    let title: String = title.to_owned();
-    let message: String = message.to_owned();
-
-    std::thread::spawn(|| {
-        println!("Showing MsgBox: {message}");
-
-        let message_box = dialog::Message::new(message)
-            .title(title)
-            .show();
-
-        match message_box {
-            Ok(_) => {},
-            Err(error) => println!("Failed to show message box: {error}")
-        }
-    });
+    logger.shutdown();
+    std::process::exit(1);
 }
 

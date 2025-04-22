@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 mod homepage1;
 
 use std::fs;
@@ -7,8 +9,8 @@ use iced::{Color, Element};
 use iced::widget::{button, column, container, row, text, Container, Image};
 use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
+use log::warn;
 use crate::Msg;
-use crate::default_file_paths::{show_msgbox};
 use crate::utility::{GameInfo, GameType, TransparentButton, Version};
 use serde;
 
@@ -18,7 +20,6 @@ pub enum MsgHomePage {
     LoadProfile(usize),
     Login,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct SceneHomePage;
@@ -157,80 +158,64 @@ pub struct ModReference {
 
 
 
-pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
+pub fn load_profiles(home_dir: &PathBuf) -> Result<Vec<Profile>, String> {
+    // check if acorn home dir exists to prevent error message on first launch
+    if !home_dir.is_dir() {
+        warn!("Did not load profiles because the AcornGM home directory does not exist.\
+            This should only happen on the first launch when no profiles are created yet.");
+        return Ok(vec![])
+    }
+    
     let profiles_dir: PathBuf = home_dir.join("./Profiles");
-
-    let paths: ReadDir = match fs::read_dir(profiles_dir) {
-        Ok(ok) => ok,
-        Err(error) => {
-            show_msgbox("Error while getting profiles", &format!("Could not get files in Profiles directory: {error}"));
-            return vec![];
-        }
-    };
+    let paths: ReadDir = fs::read_dir(profiles_dir)
+        .map_err(|e| format!("Could not get files in Profiles directory: {e}"))?;
 
     let mut profiles: Vec<Profile> = vec![];
 
     for path in paths {
-        let path = match path {
-            Ok(ok) => ok,
-            Err(error) => {
-                show_msgbox("Error while getting profiles", &format!("Could not unwrap files in Profiles directory: {error}"));
-                return vec![];
-            }
-        };
+        let path: PathBuf = path
+            .map_err(|e| format!("Could not unwrap files in Profiles directory: {e}"))?
+            .path();
 
-        let path: PathBuf = path.path();
         if !path.is_dir() { continue }
         let config_file: PathBuf = path.join("./profile.json");
         let icon_file: PathBuf = path.join("./icon.png");
 
         let config: String = match fs::read_to_string(&config_file) {
-            Ok(ok) => ok,
-            Err(error) => {
-                show_msgbox("Error while getting profiles", &format!(
-                    "Could not read config file of Profile \"{}\": {error}", config_file.to_str().unwrap_or_else(||""),
-                ));
-                continue;
+            Ok(cfg) => cfg,
+            Err(e) => {
+                warn!("Could not read config file of Profile \"{}\": {e}", config_file.display());
+                continue
             }
         };
 
         let profile_json: ProfileJson = match serde_json::from_str(&config) {
-            Ok(ok) => ok,
-            Err(error) => {
-                show_msgbox("Error while getting profiles", &format!(
-                    "Could not read config file of Profile \"{:?}\": {error}", config_file.to_str().unwrap_or_else(||""),
-                ));
-                continue;
+            Ok(json) => json,
+            Err(e) => {
+                warn!("Could not parse config file of Profile \"{}\": {e}", config_file.display());
+                continue
             }
         };
 
-        let game_type: GameType = match profile_json.game_name.as_str() {
-            "Undertale" => GameType::Undertale,
-            "Deltarune" => GameType::Deltarune,
-            other => GameType::Other(other.to_string()),
-        };
-        let game_version = Version { major: profile_json.game_version[0], minor: profile_json.game_version[1] };
+        let game_type: GameType = GameType::from_name(&profile_json.game_name);
+        let game_version: Version = Version::from_vec(profile_json.game_version);
         let game_info: GameInfo = GameInfo { game_type, version: game_version };
         let date_created: chrono::DateTime<chrono::Local> = match profile_json.date_created.parse() {
-            Ok(ok) => ok,
-            Err(error) => {
-                show_msgbox("Error while getting profiles", &format!(
-                    "Could not parse creation datetime \"{}\" of Profile \"{:?}\": {}", profile_json.date_created, path.to_str(), error,
-                ));
-                continue;
+            Ok(date) => date,
+            Err(e) => {
+                warn!("Could not parse creation datetime \"{}\" of Profile \"{}\": {e}", profile_json.date_created, path.display());
+                continue
             }
         };
         let last_used: chrono::DateTime<chrono::Local> = match profile_json.date_created.parse() {
             Ok(ok) => ok,
-            Err(error) => {
-                show_msgbox("Error while getting profiles", &format!(
-                    "Could not parse last used datetime \"{}\" of Profile \"{:?}\": {}", profile_json.last_used, path.to_str(), error,
-                ));
-                continue;
+            Err(e) => {
+                warn!("Could not parse last used datetime \"{}\" of Profile \"{}\": {e}", profile_json.last_used, path.display());
+                continue
             }
         };
 
-        // maybe check if icon exists
+        // maybe check if icon exists?
         let icon: Handle = Handle::from_path(icon_file);
 
         profiles.push(Profile {
@@ -243,6 +228,6 @@ pub fn load_profiles(home_dir: &PathBuf) -> Vec<Profile> {
             icon,
         })
     }
-    profiles
+    Ok(profiles)
 }
 

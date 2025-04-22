@@ -13,7 +13,7 @@ use once_cell::sync::Lazy;
 use crate::default_file_paths::get_home_directory;
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
-use crate::utility::{get_device_info, DeviceInfo};
+use crate::utility::{get_device_info, show_error_dialogue, DeviceInfo};
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
 
@@ -80,7 +80,7 @@ impl Application for MyApp {
     type Flags = MyAppFlags;
 
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
-        let home_dir: PathBuf = get_home_directory();
+        let home_dir: PathBuf = get_home_directory(flags.logger.clone());
         let app_root: PathBuf = match std::env::current_exe() {
             Ok(exe_path) => exe_path
                 .parent()
@@ -92,10 +92,13 @@ impl Application for MyApp {
                 std::process::exit(1);
             }
         };
-        let profiles: Vec<Profile> = load_profiles(&home_dir);
+        let profiles: Vec<Profile> = load_profiles(&home_dir).unwrap_or_else(|e| {
+            show_error_dialogue("Could not get AcornGM profiles", &e);
+            vec![]
+        });
         let device_info: DeviceInfo = get_device_info();
 
-        let ts: MyApp = Self {
+        (Self {
             flags,
             home_dir,
             app_root,
@@ -103,9 +106,7 @@ impl Application for MyApp {
             profiles,
             access_token: None,   // TODO load from file
             active_scene: Arc::new(SceneType::HomePage(SceneHomePage {})),
-        };
-        let pmo: Command<Msg> = Command::none();
-        (ts, pmo)
+        }, Command::none())
     }
     fn title(&self) -> String {
         "AcornGM".to_string()

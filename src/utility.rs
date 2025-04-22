@@ -4,13 +4,14 @@ use std::path::{Path, PathBuf};
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
+use log::{error, info};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
 pub fn get_default_icon_image(cwd: &PathBuf) -> Handle {
-    let path: PathBuf = std::path::Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
+    let path: PathBuf = Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
     if !path.is_file() {
-        println!("[WARN @ utility::get_default_icon_image]  Could not get default icon because its path doesn't exist: {}", path.display());
+        error!("Could not get default icon because its path doesn't exist: {}", path.display());
         return Handle::from_pixels(1, 1, [0, 0, 0, 0])
     }
 
@@ -25,6 +26,23 @@ pub enum GameType {
     Undertale,
     Deltarune,
     Other(String),
+}
+impl GameType {
+    pub fn from_name(name: &str) -> Self {
+        match name {
+            "Undertale" => Self::Undertale,
+            "Deltarune" => Self::Deltarune,
+            other => Self::Other(other.to_string()),
+        }
+    }
+    pub fn to_string(&self) -> Option<String> {
+        match &self {
+            GameType::Unset => None,
+            GameType::Undertale => Some("Undertale".to_string()),
+            GameType::Deltarune => Some("Deltarune".to_string()),
+            GameType::Other(name) => Some(name.clone()),
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone)]
@@ -67,11 +85,22 @@ pub struct Version {
     pub major: u32,
     pub minor: u32,
 }
+
+impl Version {
+    pub fn from_vec(vec: [u32; 2]) -> Self {
+        Self {
+            major: vec[0],
+            minor: vec[1],
+        }
+    }
+}
+
 impl fmt::Display for Version {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{:02}", self.major, self.minor)
     }
 }
+
 impl std::str::FromStr for Version {
     type Err = ParseVersionError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -152,3 +181,16 @@ pub fn get_device_info() -> DeviceInfo {
         cpu_architecture: whoami::arch().to_string(),
     }
 }
+
+
+pub fn show_error_dialogue(title: &str, message: &str) {
+    info!("Showing Message Dialogue: {message}");
+    let message_dialogue: rfd::MessageDialog = rfd::MessageDialog::new()
+        .set_title(title)
+        .set_description(message)
+        .set_buttons(rfd::MessageButtons::Ok)
+        .set_level(rfd::MessageLevel::Error);
+
+    std::thread::spawn(|| message_dialogue.show());
+}
+

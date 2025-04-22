@@ -6,12 +6,12 @@ use iced::advanced::image::Data;
 use iced::widget::{container, column, text, row, button, TextInput};
 use image::DynamicImage;
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED, WINDOW_SIZE_VIEW_PROFILE};
-use crate::default_file_paths::{get_default_data_file_dir, show_msgbox};
+use crate::default_file_paths::get_default_data_file_dir;
 use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
-use crate::utility::{remove_spaces, GameType, Version};
-use log::error;
-use crate::scenes::create_profile::{detect_game_and_version, make_profile_dir_name_valid, resize_image_fast, SceneCreateProfile};
+use crate::utility::{remove_spaces, show_error_dialogue, GameType, Version};
+use log::{error, info, warn};
+use crate::scenes::create_profile::{detect_game_and_version, make_profile_dir_name_valid, resize_and_save_icon, SceneCreateProfile};
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile2 {
@@ -51,94 +51,10 @@ impl SceneCreateProfile {
                 if let GameType::Unset = self.game_info.game_type {
                     return Command::none()
                 }
-
-                let profile_dir_name: String = make_profile_dir_name_valid(&self.profile_name);
-                let profile_dir: PathBuf = app.home_dir.join(format!("./Profiles/{}", profile_dir_name));
-                if let Err(error) = fs::create_dir_all(&profile_dir) {
-                    show_msgbox("Error creating AcornGM profile", &format!("Could not create profile directory: {error}"))
-                };
-
-                let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
-
-                let profile = Profile {
-                    index: app.profiles.len(),
-                    name: self.profile_name.clone(),
-                    game_info: self.game_info.clone(),
-                    date_created: date_now.with_timezone(&chrono::Local),
-                    last_used: date_now.with_timezone(&chrono::Local),
-                    mods: vec![],
-                    icon: self.icon.clone(),
-                };
-
-                // create config file
-                let config_file: PathBuf = profile_dir.join("./profile.json");
-                let date_string: String = date_now.to_string();
-                let game_name: String = match &self.game_info.game_type {
-                    GameType::Undertale => "Undertale".to_string(),
-                    GameType::Deltarune => "Deltarune".to_string(),
-                    GameType::Other(name) => name.clone(),
-                    GameType::Unset => return Command::none(),
-                };
-
-                let config: serde_json::Value = serde_json::json!({
-                    "displayName": self.profile_name,
-                    "dateCreated": date_string,
-                    "lastUsed": date_string,
-                    "gameName": game_name,
-                    "gameVersion": [self.game_info.version.major, self.game_info.version.minor],
-                    "mods": [],
-                });
-                let config: String = serde_json::to_string_pretty(&config).unwrap();
-
-                if let Err(error) = fs::write(config_file, config) {
-                    show_msgbox("Error creating AcornGM profile", &format!("Could not create profile config file: {error}"))
-                };
-
-                // create icon file  | {..} SLOW OPERATION   TODO move to func and load directly with fir
-                let icon_file: PathBuf = profile_dir.join("./icon.png");
-                let image: DynamicImage = match self.icon.data() {
-                    Data::Path(path) => {
-                        image::open(path).unwrap_or_else(|error| {
-                            show_msgbox("Error creating AcornGM profile",
-                                        &format!("Could not create icon file because image::open could not parse Data::Path: {error}"));
-                            DynamicImage::ImageRgba8(image::RgbaImage::new(1, 1))
-                        })
-                    }
-                    Data::Bytes(bytes) => {
-                        image::load_from_memory(&bytes).unwrap_or_else(|_| {
-                            show_msgbox("Error creating AcornGM profile",
-                                        "Could not create icon file because image::load_from_memory could not parse Data::Bytes.");
-                            DynamicImage::ImageRgba8(image::RgbaImage::new(1, 1))
-                        })
-                    }
-                    Data::Rgba { width, height, pixels } => {
-                        DynamicImage::ImageRgba8(image::RgbaImage::from_raw(*width, *height, pixels.to_vec()).unwrap_or_else(|| {
-                            show_msgbox("Error creating AcornGM profile",
-                                        "Could not create icon file because RgbaImage could not parse Data::Rgba.");
-                            image::RgbaImage::new(1, 1)
-                        }))
-                    }
-                };
-
-                let resized_image: DynamicImage = resize_image_fast(image);     // cap resolution for performance | {..} SLOW OPERATION
-                if let Err(error) = resized_image.save(icon_file) {
-                    show_msgbox("Error creating AcornGM profile", &format!("Could not create profile icon file: {error}"))
-                };
-
-                // copy data win
-                let data_file: PathBuf = profile_dir.join("./data.win");
-                if let Err(error) = fs::copy(&self.data_file_path, data_file) {      // {..} SLOW OPERATION
-                    show_msgbox("Error creating AcornGM profile", &format!("Could not copy data file: {error}"))
-                };
-
-                app.profiles = load_profiles(&app.home_dir);     // reload profiles for homepage
-                app.active_scene = Arc::new(SceneType::ViewProfile(SceneViewProfile {
-                    profile,
-                    mods: vec![],
-                    browser: Default::default(),
-                    mod_details: Default::default(),
-                }));
-                return iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
+                return self.create_profile(app).unwrap_or_else(|e| {
+                    show_error_dialogue("Could not create AcornGM profile", &e);
+                    Command::none()
+                })
             }
 
             MsgCreateProfile2::EditDataPath(data_file_path) => {
@@ -150,57 +66,26 @@ impl SceneCreateProfile {
             },
 
             MsgCreateProfile2::PickDataPath => {
-                let default_data_dir: PathBuf = match get_default_data_file_dir() {
-                    Ok(path) => path,
-                    Err(error) => {
-                        println!("[WARN @ create_profile2::update]  Could not get default data file path: {error}"); return Command::none();
-                    }
-                };
-                // this file picker blocks the main thread; causing it to appear as "Not responding"
-                // perhaps use async {..}
-                let data_path = native_dialog::FileDialog::new()
-                    .set_location(&default_data_dir)
-                    .add_filter("GameMaker Data File", &["win", "unx"])
-                    .show_open_single_file();
-                let data_path = match data_path {
-                    Ok(p) => p,
-                    Err(error) => { println!("[WARN @ create_profile2::update]  Could not get path from file picker: {}", error); return Command::none(); }
-                };
-                let data_path: PathBuf = match data_path {
-                    Some(p) => p,
-                    None => { println!("[WARN @ create_profile2::update]  Path from file picker is empty"); return Command::none(); }
-                };
-                let data_path: &str = match data_path.to_str() {
-                    Some(p) => p,
-                    None => { println!("[WARN @ create_profile2::update]  Could not convert data path to string"); return Command::none(); }
-                };
-                self.data_file_path = data_path.to_string();
-                self.detect_game();
+                self.pick_data_path(app);
             },
 
             MsgCreateProfile2::EditGameName(name) => {
-                match &self.game_info.game_type {
-                    GameType::Other(_) => {
-                        self.game_name = name.clone();
-                        self.game_info.game_type = GameType::Other(name);
-                    },
-                    _ => {},
+                // only allow for `Other` game type; when game wasn't automatically detected
+                if let GameType::Other(_) = &self.game_info.game_type {
+                    self.game_name = name.clone();
+                    self.game_info.game_type = GameType::Other(name);
                 }
             },
 
             MsgCreateProfile2::EditGameVersion(version_str) => {
                 // ignore if no data file loaded or if version was automatically detected
-                match self.game_info.game_type {
-                    GameType::Other(_) => {},
-                    _ => return Command::none(),
+                if !matches!(self.game_info.game_type, GameType::Other(_)) {
+                    return Command::none()
                 }
                 self.game_version_str = remove_spaces(&version_str);
-                let version: Version = match version_str.parse() {
-                    Ok(ver) => ver,
-                    Err(_) => {
-                        self.is_game_version_valid = false;
-                        return Command::none();
-                    }
+                let Ok(version) = version_str.parse() else {
+                    self.is_game_version_valid = false;
+                    return Command::none();
                 };
                 self.game_info.version = version;
                 self.is_game_version_valid = true;
@@ -315,4 +200,92 @@ impl SceneCreateProfile {
     }
 }
 
+
+impl SceneCreateProfile {
+    fn create_profile(&mut self, app: &mut MyApp) -> Result<Command<Msg>, String> {
+        let profile_dir_name: String = make_profile_dir_name_valid(&self.profile_name);
+        let profile_dir: PathBuf = app.home_dir.join("Profiles").join(profile_dir_name);
+        fs::create_dir_all(&profile_dir)
+            .map_err(|e| "Could not create profile directory: {e}")?;
+
+        let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
+
+        let profile = Profile {
+            index: app.profiles.len(),
+            name: self.profile_name.clone(),
+            game_info: self.game_info.clone(),
+            date_created: date_now.with_timezone(&chrono::Local),
+            last_used: date_now.with_timezone(&chrono::Local),
+            mods: vec![],
+            icon: self.icon.clone(),
+        };
+        
+        let config_file: PathBuf = profile_dir.join("profile.json");
+        let date_string: String = date_now.to_string();
+        let game_name: String = self.game_info.game_type.to_string()
+            .ok_or("Game Type is somehow not set; this should have already been checked, though.".to_string())?;
+
+        let config: serde_json::Value = serde_json::json!({
+            "displayName": self.profile_name,
+            "dateCreated": date_string,
+            "lastUsed": date_string,    // TODO update ts last_used value when you load the profile
+            "gameName": game_name,
+            "gameVersion": [self.game_info.version.major, self.game_info.version.minor],
+            "mods": [],
+        });
+        let config: String = serde_json::to_string_pretty(&config).expect("Could not convert (half literal) json to string");
+
+        // write config json
+        fs::write(config_file, config)
+            .map_err(|e| "Could not create profile config file: {e}")?;
+        
+        // copy icon image
+        let icon_path: PathBuf = profile_dir.join("icon.png");
+        resize_and_save_icon(&self.icon, icon_path)?;
+
+        // copy data win  |  {..} SLOW OPERATION
+        let data_file: PathBuf = profile_dir.join("data.win");
+        fs::copy(&self.data_file_path, data_file)
+            .map_err(|e| "Could not copy data file: {e}")?;
+
+        // reload profiles for homepage
+        app.profiles = load_profiles(&app.home_dir)?;
+        
+        app.active_scene = Arc::new(SceneType::ViewProfile(SceneViewProfile {
+            profile,
+            mods: vec![],
+            browser: Default::default(),
+            mod_details: Default::default(),
+        }));
+        // resize window for new scene
+        Ok(iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
+    }
+
+    fn pick_data_path(&mut self, app: &mut MyApp) {
+        let origin_path: PathBuf = get_default_data_file_dir().unwrap_or_else(|e| {
+            warn!("Could not get default data file path: {e}");
+            app.home_dir.clone()
+        });
+
+        // this file picker blocks the main thread; causing it to appear as "Not responding"
+        // TODO different thread
+        let data_path: Option<PathBuf> = rfd::FileDialog::new()
+            .set_title("Pick a GameMaker data file for your AcornGM profile")
+            .set_directory(&origin_path)
+            .add_filter("GameMaker Data File", &["win", "unx"])
+            .pick_file();
+
+        let data_path: PathBuf = match data_path {
+            Some(path) => path,
+            None => {
+                info!("User did not pick a data file and instead cancelled the operation.");
+                return
+            }
+        };
+
+        let data_path: &str = data_path.to_str().expect("Could not convert data path to string");
+        self.data_file_path = data_path.to_string();
+        self.detect_game();
+    }
+}
 

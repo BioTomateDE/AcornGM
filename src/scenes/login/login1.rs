@@ -4,12 +4,11 @@ use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
 use webbrowser;
-use crate::default_file_paths::show_msgbox;
 use cli_clipboard::ClipboardProvider;
 use log::error;
 use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::ACORN_BASE_URL;
+use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
 use reqwest::blocking::Client as ReqClient;
 use crate::scenes::login::SceneLogin;
 
@@ -35,7 +34,8 @@ impl Scene for SceneLogin {
 
         match message {
             MsgLogin::LoginExternal => {
-                return self.do_external_login(app)
+                self.do_external_login(app)
+                    .unwrap_or_else(|e| show_error_dialogue("Error while logging in", &e))
             },
 
             MsgLogin::BackToHomepage => {
@@ -176,18 +176,16 @@ impl Scene for SceneLogin {
 
 
 impl SceneLogin {
-    fn do_external_login(&mut self, app: &MyApp) -> Command<Msg> {
+    fn do_external_login(&mut self, app: &MyApp) -> Result<(), String> {
         if app.access_token.is_some() {
-            show_msgbox("Error while logging in", "Already logged in!");
-            return Command::none()
+            return Err("Already logged in!".to_string())
         }
-        
-        if webbrowser::open(&self.url).is_err() {
-            show_msgbox("Error while logging in", "Could not open URL to log in!");
-            return Command::none()
-        }
+
+        webbrowser::open(&self.url)
+            .map_err(|e| "Failed to open browser: {e}")?;
+            
         self.request_listener_active = true;
-        Command::none()
+        Ok(())
     }
 }
 

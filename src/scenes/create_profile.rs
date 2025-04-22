@@ -3,16 +3,17 @@ pub use create_profile1::MsgCreateProfile1;
 mod create_profile2;
 pub use create_profile2::MsgCreateProfile2;
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use fast_image_resize::PixelType;
 use fast_image_resize as fir;
 use iced::{Command, Element};
+use iced::advanced::image::Data;
 use iced::widget::image::Handle;
 use iced::widget::text;
 use image::{DynamicImage, GenericImageView};
 use log::error;
 use crate::{Msg, MyApp, Scene};
-use crate::utility::{hash_file, GameInfo, GameType, Version};
+use crate::utility::{hash_file, show_error_dialogue, GameInfo, GameType, Version};
 
 
 #[derive(Debug, Clone)]
@@ -73,40 +74,11 @@ fn make_profile_dir_name_valid(profile_name: &str) -> String {
         }
     }
 
+    // fallback name for directory
     if name.len() < 1 || name.ends_with('.') || BANNED_NAMES.contains(&name.to_uppercase().as_str()) {
         name = uuid::Uuid::new_v4().hyphenated().to_string();
     }
     name
-}
-
-fn resize_image_fast(image: DynamicImage) -> DynamicImage {
-    const RESIZE_WIDTH: u32 = 256;
-    const RESIZE_HEIGHT: u32 = 256;
-
-    let (source_width, source_height): (u32, u32) = image.dimensions();
-    let source_image_rgba8 = image.to_rgba8();
-
-    let source_image = fir::images::Image::from_vec_u8(
-        source_width,
-        source_height,
-        source_image_rgba8.to_vec(),
-        PixelType::U8x4,
-    ).unwrap_or_else(|error| {
-        println!("[ERROR @ create_profile2::resize_image_fast]  Could not convert DynamicImage to fir Image: {error}");
-        fir::images::Image::new(1, 1, PixelType::U8x4)
-    });
-
-    let mut resized_image = fir::images::Image::new(256, 256, PixelType::U8x4);
-    fir::Resizer::new().resize(&source_image, &mut resized_image, None).unwrap_or_else(|error| {
-        println!("[ERROR @ create_profile2::resize_image_fast]  Could not resize icon image: {error}");
-    });
-
-    let resized_image_rgba8 = image::RgbaImage::from_raw(RESIZE_WIDTH, RESIZE_HEIGHT, resized_image.into_vec()).unwrap_or_else(|| {
-        println!("[ERROR @ create_profile2::resize_image_fast]  Could not convert fir Image to DynamicImage.");
-        image::RgbaImage::new(1, 1)
-    });
-
-    DynamicImage::ImageRgba8(resized_image_rgba8)
 }
 
 fn detect_game_and_version(data_file_path: &Path) -> Result<GameInfo, String> {
@@ -144,3 +116,45 @@ fn detect_game_and_version(data_file_path: &Path) -> Result<GameInfo, String> {
         })
     }
 }
+
+
+fn resize_and_save_icon(handle: &Handle, path: PathBuf) -> Result<(), String> {
+    const RESIZE_WIDTH: u32 = 256;
+    const RESIZE_HEIGHT: u32 = 256;
+
+    let fir_image_original: fir::images::Image = match handle.data() {
+        Data::Path(path) =>
+            convert_dynamic_image_to_fir(image::open(path)
+                .map_err(|e| "Could not load icon image from path: {e}")?
+            )?,
+
+        Data::Bytes(bytes) =>
+            convert_dynamic_image_to_fir(image::load_from_memory(&bytes)
+                .map_err(|e| "Could not load icon image from raw bytes: {e}")?,
+            )?,
+
+        Data::Rgba { width, height, pixels } =>
+            fir::images::Image::from_vec_u8(*width, *height, pixels.to_vec(), PixelType::U8x4)
+                .map_err(|e| "Could not load icon image from in-memory RGBA: {e}")?
+    };
+
+    let mut fir_img_resized = fir::images::Image::new(RESIZE_WIDTH, RESIZE_HEIGHT, PixelType::U8x4);
+    fir::Resizer::new().resize(&fir_image_original, &mut fir_img_resized, None)
+        .map_err(|e| "Could not resize icon image: {e}")?;
+
+    let img_resized: image::RgbaImage = image::ImageBuffer::from_raw(RESIZE_WIDTH, RESIZE_HEIGHT, fir_img_resized.into_vec())
+        .ok_or("Could not convert fast_image_resize::images::Image to DynamicImage")?;
+
+    img_resized.save(path)
+        .map_err(|e| "Could not save icon image file: {e}")?;
+    
+    Ok(())
+}
+
+fn convert_dynamic_image_to_fir(image: DynamicImage) -> Result<fir::images::Image<'static>, String> {
+    let raw: Vec<u8> = image.to_rgba8().into_raw();
+    Ok(fir::images::Image::from_vec_u8(image.width(), image.height(), raw, PixelType::U8x4)
+        .map_err(|e| format!("Could not convert DynamicImage to fast_image_resize::images::Image: {e}"))?
+    )
+}
+
