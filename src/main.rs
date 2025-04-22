@@ -7,7 +7,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Element, Font, Pixels, Size, Subscription};
 use iced::Settings;
-use log::error;
+use log::{error, info, warn};
 use biologischer_log::{init_logger, CustomLogger};
 use once_cell::sync::Lazy;
 use crate::default_file_paths::get_home_directory;
@@ -63,9 +63,6 @@ struct MyAppFlags {
     logger: Arc<CustomLogger>,
 }
 
-// const COLOR_TEXT1: Color = Color::from_rgb8(231, 227, 213);
-// const COLOR_TEXT2: Color = Color::from_rgb8(147, 146, 145);
-// const COLOR_TEXT_RED: Color = Color::from_rgb8(237, 49, 31);
 const COLOR_TEXT1: Lazy<Color> = Lazy::new(|| Color::new(0.906, 0.890, 0.835, 1.0));
 const COLOR_TEXT2: Lazy<Color> = Lazy::new(|| Color::new(0.576, 0.573, 0.569, 1.0));
 const COLOR_TEXT_RED: Lazy<Color> = Lazy::new(|| Color::new(0.929, 0.192, 0.122, 1.0));
@@ -112,6 +109,10 @@ impl Application for MyApp {
         "AcornGM".to_string()
     }
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
+        if let Msg::Global(msg) = message {
+            return self.handle_global_messages(msg);
+        }
+        
         match &*self.active_scene {
             SceneType::HomePage(scene) => scene.clone().update(self, message),
             SceneType::CreateProfile(scene) => scene.clone().update(self, message),
@@ -142,9 +143,19 @@ impl Application for MyApp {
     }
 }
 
+impl MyApp {
+    fn handle_global_messages(&mut self, message: MsgGlobal) -> Command<Msg> {
+        match message {
+            MsgGlobal::Keepalive => {}  // TODO send request
+        }
+        
+        Command::none()
+    }
+}
+
 
 pub fn main() -> iced::Result {
-    let logger = init_logger();
+    let logger = init_logger(env!("CARGO_PKG_NAME"));
 
     let main_window_id: iced::window::Id = iced::window::Id::unique();
 

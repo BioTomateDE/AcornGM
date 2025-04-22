@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 use iced::{alignment, Command, Element};
-use iced::widget::{container, column, text, row, button, TextInput, Image};
+use iced::widget::{container, column, text, row, button, Image, text_input};
 use iced::widget::image::Handle;
 use log::{error, info, warn};
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
@@ -61,9 +61,9 @@ impl SceneCreateProfile {
                     text("").size(10),
                     text("Profile Name").size(14).style(*COLOR_TEXT2),
                     text("").size(4),
-                    TextInput::new(
+                    text_input(
                         "My Profile",
-                        &self.profile_name
+                        &self.profile_name,
                     ).on_input(|string| Msg::CreateProfile1(MsgCreateProfile1::EditProfileName(string))),
                     text("").size(4),
                     profile_name_valid,

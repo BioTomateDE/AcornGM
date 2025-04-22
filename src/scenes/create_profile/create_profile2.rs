@@ -2,14 +2,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use iced::{alignment, Command, Element};
-use iced::advanced::image::Data;
 use iced::widget::{container, column, text, row, button, TextInput};
-use image::DynamicImage;
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED, WINDOW_SIZE_VIEW_PROFILE};
 use crate::default_file_paths::get_default_data_file_dir;
 use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
-use crate::utility::{remove_spaces, show_error_dialogue, GameType, Version};
+use crate::utility::{remove_spaces, show_error_dialogue, GameType};
 use log::{error, info, warn};
 use crate::scenes::create_profile::{detect_game_and_version, make_profile_dir_name_valid, resize_and_save_icon, SceneCreateProfile};
 
@@ -206,7 +204,7 @@ impl SceneCreateProfile {
         let profile_dir_name: String = make_profile_dir_name_valid(&self.profile_name);
         let profile_dir: PathBuf = app.home_dir.join("Profiles").join(profile_dir_name);
         fs::create_dir_all(&profile_dir)
-            .map_err(|e| "Could not create profile directory: {e}")?;
+            .map_err(|e| format!("Could not create profile directory: {e}"))?;
 
         let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
 
@@ -237,7 +235,7 @@ impl SceneCreateProfile {
 
         // write config json
         fs::write(config_file, config)
-            .map_err(|e| "Could not create profile config file: {e}")?;
+            .map_err(|e| format!("Could not create profile config file: {e}"))?;
         
         // copy icon image
         let icon_path: PathBuf = profile_dir.join("icon.png");
@@ -246,7 +244,7 @@ impl SceneCreateProfile {
         // copy data win  |  {..} SLOW OPERATION
         let data_file: PathBuf = profile_dir.join("data.win");
         fs::copy(&self.data_file_path, data_file)
-            .map_err(|e| "Could not copy data file: {e}")?;
+            .map_err(|e| format!("Could not copy data file: {e}"))?;
 
         // reload profiles for homepage
         app.profiles = load_profiles(&app.home_dir)?;

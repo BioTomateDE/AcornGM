@@ -182,7 +182,7 @@ impl SceneLogin {
         }
 
         webbrowser::open(&self.url)
-            .map_err(|e| "Failed to open browser: {e}")?;
+            .map_err(|e| format!("Failed to open browser: {e}"))?;
             
         self.request_listener_active = true;
         Ok(())

@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use biologischer_log::CustomLogger;
-use log::{error, info, warn};
+use log::{info, warn};
 use crate::utility::show_error_dialogue;
 
 pub fn get_default_image_prompt_path() -> Result<PathBuf, String> {

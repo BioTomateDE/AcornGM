@@ -1,4 +1,4 @@
-use iced::{Command, Element};
+use iced::Element;
 use iced::widget::{container, column, row, text, Image};
 use crate::{Msg, COLOR_TEXT1, COLOR_TEXT2};
 use crate::scenes::view_profile::AcornMod;

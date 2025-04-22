@@ -10,10 +10,10 @@ use iced::{Command, Element};
 use iced::advanced::image::Data;
 use iced::widget::image::Handle;
 use iced::widget::text;
-use image::{DynamicImage, GenericImageView};
+use image::DynamicImage;
 use log::error;
 use crate::{Msg, MyApp, Scene};
-use crate::utility::{hash_file, show_error_dialogue, GameInfo, GameType, Version};
+use crate::utility::{hash_file, GameInfo, GameType, Version};
 
 
 #[derive(Debug, Clone)]
@@ -125,29 +125,29 @@ fn resize_and_save_icon(handle: &Handle, path: PathBuf) -> Result<(), String> {
     let fir_image_original: fir::images::Image = match handle.data() {
         Data::Path(path) =>
             convert_dynamic_image_to_fir(image::open(path)
-                .map_err(|e| "Could not load icon image from path: {e}")?
+                .map_err(|e| format!("Could not load icon image from path: {e}"))?
             )?,
 
         Data::Bytes(bytes) =>
             convert_dynamic_image_to_fir(image::load_from_memory(&bytes)
-                .map_err(|e| "Could not load icon image from raw bytes: {e}")?,
+                .map_err(|e| format!("Could not load icon image from raw bytes: {e}"))?,
             )?,
 
         Data::Rgba { width, height, pixels } =>
             fir::images::Image::from_vec_u8(*width, *height, pixels.to_vec(), PixelType::U8x4)
-                .map_err(|e| "Could not load icon image from in-memory RGBA: {e}")?
+                .map_err(|e| format!("Could not load icon image from in-memory RGBA: {e}"))?
     };
 
     let mut fir_img_resized = fir::images::Image::new(RESIZE_WIDTH, RESIZE_HEIGHT, PixelType::U8x4);
     fir::Resizer::new().resize(&fir_image_original, &mut fir_img_resized, None)
-        .map_err(|e| "Could not resize icon image: {e}")?;
+        .map_err(|e| format!("Could not resize icon image: {e}"))?;
 
     let img_resized: image::RgbaImage = image::ImageBuffer::from_raw(RESIZE_WIDTH, RESIZE_HEIGHT, fir_img_resized.into_vec())
         .ok_or("Could not convert fast_image_resize::images::Image to DynamicImage")?;
 
     img_resized.save(path)
-        .map_err(|e| "Could not save icon image file: {e}")?;
-    
+        .map_err(|e| format!("Could not save icon image file: {e}"))?;
+
     Ok(())
 }
 
