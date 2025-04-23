@@ -3,11 +3,11 @@ mod utility;
 mod default_file_paths;
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Element, Font, Pixels, Size, Subscription};
 use iced::Settings;
-use log::{error, info, warn};
+use log::error;
 use biologischer_log::{init_logger, CustomLogger};
 use once_cell::sync::Lazy;
 use crate::default_file_paths::get_home_directory;
@@ -102,7 +102,7 @@ impl Application for MyApp {
             device_info,
             profiles,
             access_token: None,   // TODO load from file
-            active_scene: SceneType::HomePage(((/*trt*/SceneHomePage {}))),
+            active_scene: SceneType::HomePage(SceneHomePage {}),
         }, Command::none())
     }
     fn title(&self) -> String {

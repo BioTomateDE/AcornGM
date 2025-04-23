@@ -23,7 +23,7 @@ impl Scene for SceneHomePage {
 
         match message {
             MsgHomePage::CreateProfile => {
-                app.active_scene = SceneType::CreateProfile(((/*trt*/SceneCreateProfile {
+                app.active_scene = SceneType::CreateProfile(SceneCreateProfile {
                     stage: 1,
                     profile_name: "My Profile".to_string(),
                     is_profile_name_valid: true,
@@ -33,12 +33,12 @@ impl Scene for SceneHomePage {
                     game_name: "".to_string(),
                     game_version_str: "".to_string(),
                     is_game_version_valid: true,        // to hide error when no data file is loaded
-                })));
+                });
             },
 
             MsgHomePage::LoadProfile(index) => {
                 if let Some(profile) = app.profiles.get(index) {
-                    app.active_scene = SceneType::ViewProfile(((/*trt*/SceneViewProfile {
+                    app.active_scene = SceneType::ViewProfile(SceneViewProfile {
                         mods: vec![],
                         profile: profile.clone(),
                         browser: ModBrowser {
@@ -48,7 +48,7 @@ impl Scene for SceneHomePage {
                             show_only_compatible: true,
                         },
                         mod_details: Default::default(),
-                    })));
+                    });
                 }
                 return iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
             },
@@ -57,11 +57,11 @@ impl Scene for SceneHomePage {
                 let temp_login_token: String = uuid::Uuid::new_v4().to_string();
                 let url: String = format!("{ACORN_BASE_URL}/goto_discord_auth?temp_login_token={}", temp_login_token);
 
-                app.active_scene = SceneType::Login(((/*trt*/SceneLogin {
+                app.active_scene = SceneType::Login(SceneLogin {
                     temp_login_token,
                     url,
                     request_listener_active: false,
-                })));
+                });
             },
         }
         Command::none()

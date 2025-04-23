@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
@@ -39,11 +38,11 @@ impl Scene for SceneLogin {
             },
 
             MsgLogin::BackToHomepage => {
-                app.active_scene = SceneType::HomePage(((/*trt*/SceneHomePage {})));
+                app.active_scene = SceneType::HomePage(SceneHomePage {});
             },
 
             MsgLogin::Next => {
-                app.active_scene = SceneType::HomePage(((/*trt*/SceneHomePage {})));
+                app.active_scene = SceneType::HomePage(SceneHomePage {});
             },
 
             MsgLogin::CopyLink => {

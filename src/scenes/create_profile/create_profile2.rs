@@ -1,6 +1,5 @@
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED, WINDOW_SIZE_VIEW_PROFILE};
@@ -35,7 +34,7 @@ impl SceneCreateProfile {
 
         match message {
             MsgCreateProfile2::BackToHomepage => {
-                app.active_scene = SceneType::HomePage(((/*trt*/SceneHomePage {})));
+                app.active_scene = SceneType::HomePage(SceneHomePage {});
             },
 
             MsgCreateProfile2::StepBack => {
@@ -249,12 +248,12 @@ impl SceneCreateProfile {
         // reload profiles for homepage
         app.profiles = load_profiles(&app.home_dir)?;
         
-        app.active_scene = SceneType::ViewProfile(((/*trt*/SceneViewProfile {
+        app.active_scene = SceneType::ViewProfile(SceneViewProfile {
             profile,
             mods: vec![],
             browser: Default::default(),
             mod_details: Default::default(),
-        })));
+        });
         // resize window for new scene
         Ok(iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
     }
