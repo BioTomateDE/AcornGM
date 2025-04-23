@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use crate::scenes::view_profile::{AcornMod, SceneViewProfile};
 use iced::{Color, Command, Element};
 use iced::advanced::image::Handle;
@@ -82,7 +82,7 @@ impl Scene for SceneViewProfile {
 
         match message {
             MsgViewProfile::BackToHomepage => {
-                app.active_scene = Arc::new(SceneType::HomePage(SceneHomePage));
+                app.active_scene = SceneType::HomePage(((/*trt*/SceneHomePage)));
                 return iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_NORMAL)
             }
 

@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, Image, text_input};
 use iced::widget::image::Handle;
@@ -29,7 +29,7 @@ impl SceneCreateProfile {
 
         match message {
             MsgCreateProfile1::BackToHomepage => {
-                app.active_scene = Arc::new(SceneType::HomePage(SceneHomePage {}));
+                app.active_scene = SceneType::HomePage(((/*trt*/(SceneHomePage {}))));
             },
             MsgCreateProfile1::StepNext => {
                 if self.is_profile_name_valid {

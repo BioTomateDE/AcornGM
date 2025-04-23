@@ -3,7 +3,7 @@ mod utility;
 mod default_file_paths;
 
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Element, Font, Pixels, Size, Subscription};
 use iced::Settings;
@@ -54,7 +54,7 @@ struct MyApp {
     device_info: DeviceInfo,
     profiles: Vec<Profile>,
     access_token: Option<String>,
-    active_scene: Arc<SceneType>,
+    active_scene: SceneType,
 }
 
 #[derive(Clone)]
@@ -102,7 +102,7 @@ impl Application for MyApp {
             device_info,
             profiles,
             access_token: None,   // TODO load from file
-            active_scene: Arc::new(SceneType::HomePage(SceneHomePage {})),
+            active_scene: SceneType::HomePage(((/*trt*/SceneHomePage {}))),
         }, Command::none())
     }
     fn title(&self) -> String {
@@ -112,16 +112,21 @@ impl Application for MyApp {
         if let Msg::Global(msg) = message {
             return self.handle_global_messages(msg);
         }
-        
-        match &*self.active_scene {
-            SceneType::HomePage(scene) => scene.clone().update(self, message),
-            SceneType::CreateProfile(scene) => scene.clone().update(self, message),
-            SceneType::ViewProfile(scene) => scene.clone().update(self, message),
-            SceneType::Login(scene) => scene.clone().update(self, message),
+
+        let scene_ptr = &mut self.active_scene as *mut SceneType;
+        let app = self;
+
+        unsafe {
+            match &mut *scene_ptr {
+                SceneType::HomePage(scene) => scene.update(app, message),
+                SceneType::CreateProfile(scene) => scene.update(app, message),
+                SceneType::ViewProfile(scene) => scene.update(app, message),
+                SceneType::Login(scene) => scene.update(app, message),
+            }
         }
     }
     fn view(&self) -> Element<Self::Message> {
-        match &*self.active_scene {
+        match &self.active_scene {
             SceneType::HomePage(scene) => scene.view(self),
             SceneType::CreateProfile(scene) => scene.view(self),
             SceneType::ViewProfile(scene) => scene.view(self),
@@ -132,7 +137,7 @@ impl Application for MyApp {
         iced::Theme::GruvboxDark
     }
     fn subscription(&self) -> Subscription<Msg> {
-        if let SceneType::Login(scene) = &*self.active_scene {
+        if let SceneType::Login(scene) = &self.active_scene {
             if scene.request_listener_active {
                 return time::every(Duration::new(3, 0))
                     .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
