@@ -1,6 +1,7 @@
 mod scenes;
 mod utility;
 mod default_file_paths;
+mod ui_templates;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -115,7 +116,8 @@ impl Application for MyApp {
 
         let scene_ptr = &mut self.active_scene as *mut SceneType;
         let app = self;
-
+        
+        // safe because scene is not read or written to while pattern matching; only by scene.update()
         unsafe {
             match &mut *scene_ptr {
                 SceneType::HomePage(scene) => scene.update(app, message),
@@ -168,7 +170,7 @@ pub fn main() -> iced::Result {
         min_size: Some(Size{ width: 300.0, height: 300.0 }),
         max_size: None,
         visible: true,
-        resizable: false,   // change later
+        resizable: true,
         decorations: true,
         transparent: false,
         level: iced::window::Level::Normal,

@@ -5,14 +5,15 @@ mod homepage1;
 use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
-use iced::{Color, Element};
-use iced::widget::{button, column, container, row, text, Container, Image};
+use iced::{alignment, Color, Element, Length};
+use iced::widget::{button, column, container, row, text, Container, Image, Space};
 use iced::widget::container::Appearance;
 use iced::widget::image::Handle;
 use log::warn;
 use crate::Msg;
 use crate::utility::{GameInfo, GameType, TransparentButton, Version};
 use serde;
+use crate::ui_templates::item_style;
 
 #[derive(Debug, Clone)]
 pub enum MsgHomePage {
@@ -60,21 +61,21 @@ impl Profile {
         container(
             button(
                 column![
-                    text("").size(10),
+                    Space::with_height(8.0),
                     row![
-                        text("   ").size(20),
+                        Space::with_width(8.0),
                         icon.width(50),
-                        text("    ").size(10),
+                        Space::with_width(12.0),
                         column![
                             row![
                                 text(&self.name).size(16).style(color_text1),
-                                text("      ").size(10),
+                                Space::with_width(8.0),
                                 column![
-                                    text("").size(4),
+                                    Space::with_height(4.0),
                                     text(self.last_used.format("%Y-%m-%d %H:%M")).size(12).style(color_text2),
                                 ],
                             ],
-                            text("").size(6),
+                            Space::with_height(5.0),
                             text(format!("{}/{} Mods Loaded", active_mod_count, self.mods.len())).size(13).style(color_text1),
                         ]
                     ]
@@ -82,57 +83,14 @@ impl Profile {
             )
                 .style(iced::theme::Button::Custom(Box::new(TransparentButton)))
                 .on_press(Msg::HomePage(MsgHomePage::LoadProfile(self.index)))
+                .width(Length::Fill)
+                .height(Length::Fill)
         )
-            .width(700)
             .style(item_style)
             .height(80)
             .into()
     }
 }
-
-
-fn divider_style(_theme: &iced::Theme) -> Appearance {
-    Appearance {
-        background: Some(iced::Background::Color(Color::from_rgb8(34, 33, 31))),
-        border: iced::Border {
-            color: Color::TRANSPARENT,                  // No border for divider
-            width: 0.0,                                 // No actual border width
-            radius: iced::border::Radius::from(0),  // No border radius
-        },
-        shadow: Default::default(),
-        text_color: None,
-    }
-}
-pub fn create_divider() -> Element<'static, Msg> {
-    Container::new(text(""))
-        .height(0.75)                   // Height of the divider
-        .width(iced::Length::Fill)      // Full width
-        .center_x()                     // Center horizontally
-        .style(divider_style)
-        .into()
-}
-
-pub fn item_style(_theme: &iced::Theme) -> Appearance {
-    Appearance {
-        text_color: None,
-        background: None,
-        border: iced::Border::default(),
-        shadow: Default::default(),
-    }
-}
-pub fn list_style(_theme: &iced::Theme) -> Appearance {
-    Appearance {
-        text_color: None,
-        background: Some(iced::Background::Color(Color::from_rgb8(47, 47, 46))),
-        border: iced::Border {
-            color: Color::from_rgb8(34, 33, 31),
-            width: 2.0,
-            radius: iced::border::Radius::from([0.0, 0.0, 0.0, 0.0]),
-        },
-        shadow: Default::default(),
-    }
-}
-
 
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

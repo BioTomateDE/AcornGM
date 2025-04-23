@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use iced::{alignment, Command, Element};
-use iced::widget::{container, row, column, text, button};
+use iced::widget::{container, row, column, text, button, Space};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
 use webbrowser;
 use log::{error, info, warn};
@@ -9,6 +9,7 @@ use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
 use crate::scenes::login::SceneLogin;
+use crate::ui_templates::generate_button_bar;
 
 #[derive(Debug, Clone)]
 pub enum MsgLogin {
@@ -71,7 +72,7 @@ impl Scene for SceneLogin {
                     text("").size(4),
                     row![
                         button("Open Browser").on_press(Msg::Login(MsgLogin::LoginExternal)),
-                        text("   ").size(10),
+                        Space::with_width(6.0),
                         button("Copy Link").on_press(Msg::Login(MsgLogin::CopyLink)),
                     ],
                     text("").size(2),
@@ -83,7 +84,7 @@ impl Scene for SceneLogin {
                     text("").size(4),
                     row![
                         text("Status:").style(*COLOR_TEXT2),
-                        text("   ").size(10),
+                        Space::with_width(6.0),
                         text(status_string),
                     ]
                     ].spacing(10),
@@ -91,26 +92,11 @@ impl Scene for SceneLogin {
                 .padding(20)
         ).align_x(alignment::Horizontal::Left);
 
-        let button_bar = container(
-            row![
-                container(
-                    row![
-                        text("    ").size(10),
-                        button("Cancel").on_press(Msg::Login(MsgLogin::BackToHomepage)),
-                    ]
-                    .spacing(10)
-                ),
-                text("                                                                  ").size(20),
-                container(
-                     row![
-                        button("Next >").on_press(Msg::Login(MsgLogin::Next)),
-                        text("    ").size(10),
-                    ]
-                    .spacing(10)
-                )
-            ]
-        )
-            .width(900);
+        let button_bar = generate_button_bar(vec![
+            button("Cancel").on_press(Msg::Login(MsgLogin::BackToHomepage)).into(),
+        ], vec![
+            button("Next >").on_press(Msg::Login(MsgLogin::Next)).into(),
+        ]);
 
         container(
             column![
@@ -185,7 +171,7 @@ fn request_access_token(body: HashMap<&str, String>) -> Option<String> {
         .post(format!("{ACORN_BASE_URL}/api/access_token"))
         .json(&body)
         .send();
-    
+
     let resp = match resp {
         Ok(resp) => resp,
         Err(e) => {
@@ -193,7 +179,7 @@ fn request_access_token(body: HashMap<&str, String>) -> Option<String> {
             return None
         }
     };
-    
+
     let status: StatusCode = resp.status();
     if status.is_client_error() {
         let body: String = resp.text().unwrap_or("<invalid string>".to_string());

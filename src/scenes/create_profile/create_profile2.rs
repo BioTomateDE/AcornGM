@@ -9,6 +9,7 @@ use crate::scenes::view_profile::SceneViewProfile;
 use crate::utility::{remove_spaces, show_error_dialogue, GameType};
 use log::{error, info, warn};
 use crate::scenes::create_profile::{detect_game_and_version, make_profile_dir_name_valid, resize_and_save_icon, SceneCreateProfile};
+use crate::ui_templates::generate_button_bar;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile2 {
@@ -143,28 +144,13 @@ impl SceneCreateProfile {
                 .padding(20)
             ]
         ).align_x(alignment::Horizontal::Left);
-
-        let button_bar = container(
-            row![
-                container(
-                    row![
-                        text("    ").size(10),
-                        button("Cancel").on_press(Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage)),
-                        button("< Back").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepBack)),
-                    ]
-                    .spacing(10)
-                ),
-                text("                                                        ").size(20),
-                container(
-                     row![
-                        button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepNext)),
-                        text("    ").size(10),
-                    ]
-                    .spacing(10)
-                )
-            ]
-        )
-            .width(900);
+        
+        let button_bar = generate_button_bar(vec![
+            button("Cancel").on_press(Msg::CreateProfile2(MsgCreateProfile2::BackToHomepage)).into(),
+            button("< Back").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepBack)).into(),
+        ], vec![
+            button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepNext)).into(),
+        ]);
 
         container(
             column![

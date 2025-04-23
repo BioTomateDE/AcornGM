@@ -1,12 +1,13 @@
 use crate::scenes::view_profile::{AcornMod, SceneViewProfile};
-use iced::{Color, Command, Element};
+use iced::{alignment, Color, Command, Element, Length};
 use iced::advanced::image::Handle;
-use iced::widget::{container, row, column, text, button, Image, Container, scrollable};
+use iced::widget::{container, row, column, text, button, Image, Container, scrollable, Space};
 use iced::widget::container::Appearance;
 use log::error;
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_NORMAL};
 use crate::scenes::browser::MsgBrowser;
-use crate::scenes::homepage::{create_divider, list_style, SceneHomePage};
+use crate::scenes::homepage::{SceneHomePage};
+use crate::ui_templates::{create_divider, generate_button_bar, list_style};
 use crate::utility::TransparentButton;
 
 #[derive(Debug, Clone)]
@@ -28,21 +29,21 @@ impl AcornMod {
         container(
             button(
                 column![
-                    text("").size(10),
+                    Space::with_height(8.0),
                     row![
-                        text("   ").size(20),
+                        Space::with_width(8.0),
                         icon.width(50),
-                        text("    ").size(10),
+                        Space::with_width(12.0),
                         column![
                             row![
                                 text(&self.name).size(16).style(*COLOR_TEXT1),
-                                text("      ").size(10),
+                                Space::with_width(8.0),
                                 column![
-                                    text("").size(4),
+                                    Space::with_height(4.0),
                                     text(format!("v{}", self.mod_version)).size(12).style(*COLOR_TEXT2),
                                 ],
                             ],
-                            text("").size(6),
+                            Space::with_height(5.0),
                             text(format!("by {}", self.author_name)).size(13).style(*COLOR_TEXT1),
                         ]
                     ]
@@ -122,47 +123,29 @@ impl Scene for SceneViewProfile {
         };
 
         let mods_content = container(
-            iced::widget::column![
-                column![
-                    text("Mod Manager").size(22).style(*COLOR_TEXT1),
-                    text("").size(10),
-                    text("Mods").size(14).style(*COLOR_TEXT2),
-                    text("").size(6),
-                    row![
-                        scrollable(mods).height(800),
-                        text("    ").size(10),
-                        column![
-                            text("").size(30),
-                            button(text("^").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::MoveModPriorityUp)),
-                            button(text("X").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::ToggleModActive)),
-                            button(text("v").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::MoveModPriorityDown)),
-                        ].spacing(9)
-                    ],
+            column![
+                Space::with_height(8.0),
+                text("Mod Manager").size(22).style(*COLOR_TEXT1),
+                Space::with_height(4.0),
+                text("Mods").size(14).style(*COLOR_TEXT2),
+                Space::with_height(6.0),
+                row![
+                    scrollable(mods).height(800),
+                    Space::with_width(8.0),
+                    column![
+                        button(text("^").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::MoveModPriorityUp)),
+                        button(text("X").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::ToggleModActive)),
+                        button(text("v").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::MoveModPriorityDown)),
+                    ].spacing(9)
                 ],
-            ].padding(20)
-        ).width(450);
+            ],
+        ).width(Length::Fill);
 
-        let button_bar = container(
-            row![
-                container(
-                    row![
-                        text("    ").size(10),
-                        button("Home").on_press(Msg::ViewProfile(MsgViewProfile::BackToHomepage)),
-                    ]
-                    .spacing(10)
-                ),
-                text("                                           ").size(20),
-                container(
-                     row![
-                        button("Launch Game").on_press(Msg::ViewProfile(MsgViewProfile::LaunchGame)),
-                        text("    ").size(10),
-                    ]
-                    .spacing(10)
-                )
-            ]
-        )
-            .width(900);
-
+        let button_bar = generate_button_bar(vec![
+            button("Home").on_press(Msg::ViewProfile(MsgViewProfile::BackToHomepage)).into(),
+        ], vec![
+            button("Launch Game").on_press(Msg::ViewProfile(MsgViewProfile::LaunchGame)).into(),
+        ]);
 
         let browser_content: Element<Msg> = self.browser.view();
         let mod_details_content: Element<Msg> = self.mod_details.view();
@@ -170,14 +153,16 @@ impl Scene for SceneViewProfile {
         container(
             column![
                 row![
+                    Space::with_width(4.0),
                     column![mods_content].height(750),
-                    text("       ").size(10),
+                    Space::with_width(12.0),
                     column![
                         column![browser_content].height(350),
-                        text("").size(10),
+                        Space::with_height(8.0),
                         column![mod_details_content].height(350),
                     ]
-                ],
+                ]
+                .height(Length::Fill),
                 button_bar
             ]
         )

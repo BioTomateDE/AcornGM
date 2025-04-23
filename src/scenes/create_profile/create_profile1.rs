@@ -1,12 +1,14 @@
+use std::fmt::Alignment;
 use std::path::PathBuf;
-use iced::{alignment, Command, Element};
-use iced::widget::{container, column, text, row, button, Image, text_input};
+use iced::{alignment, Command, Element, Length};
+use iced::widget::{container, column, text, row, button, Image, text_input, Space, horizontal_space};
 use iced::widget::image::Handle;
 use log::{error, info, warn};
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
 use crate::scenes::homepage::SceneHomePage;
 use crate::default_file_paths::get_default_image_prompt_path;
 use crate::scenes::create_profile::{check_profile_name_valid, SceneCreateProfile};
+use crate::ui_templates::generate_button_bar;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
@@ -75,28 +77,12 @@ impl SceneCreateProfile {
             ]
         ).align_x(alignment::Horizontal::Left);
 
-        let button_bar = container(
-            row![
-                container(
-                    row![
-                        text("    ").size(10),
-                        button("Cancel").on_press(Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage)),
-                    ]
-                    .spacing(10)
-                ),
-                text("                                                                    ").size(20),
-                container(
-                     row![
-                        button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::StepNext)),
-                        text("    ").size(10),
-                    ]
-                    .spacing(10)
-                )
-            ]
-        )
-            // .align_x(alignment::Horizontal::Right)
-            .width(900);
-
+        let button_bar = generate_button_bar(vec![
+            button("Cancel").on_press(Msg::CreateProfile1(MsgCreateProfile1::BackToHomepage)).into(),
+        ], vec![
+            button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::StepNext)).into(),
+        ]);
+        
         container(
             column![
                 column![
