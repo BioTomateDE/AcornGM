@@ -52,7 +52,6 @@ impl AcornMod {
                 .style(iced::theme::Button::Custom(Box::new(TransparentButton)))
                 .on_press(Msg::ViewProfile(MsgViewProfile::ViewModDetails(self.clone())))
         )
-            .width(700)
             .style(mod_item_style)
             .height(80)
             .into()
@@ -112,7 +111,7 @@ impl Scene for SceneViewProfile {
             mods.push(create_divider())
         }
         let mods: Container<Msg> = container(column(mods).spacing(5))
-            .width(380)
+            .width(Length::Fill)
             .style(list_style);
 
         let my_font = iced::Font {
@@ -130,13 +129,13 @@ impl Scene for SceneViewProfile {
                 text("Mods").size(14).style(*COLOR_TEXT2),
                 Space::with_height(6.0),
                 row![
-                    scrollable(mods).height(800),
-                    Space::with_width(8.0),
                     column![
                         button(text("^").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::MoveModPriorityUp)),
                         button(text("X").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::ToggleModActive)),
                         button(text("v").font(my_font)).on_press(Msg::ViewProfile(MsgViewProfile::MoveModPriorityDown)),
-                    ].spacing(9)
+                    ].spacing(9),
+                    Space::with_width(8.0),
+                    scrollable(mods).height(800),
                 ],
             ],
         ).width(Length::Fill);
@@ -154,16 +153,16 @@ impl Scene for SceneViewProfile {
             column![
                 row![
                     Space::with_width(4.0),
-                    column![mods_content].height(750),
+                    column![mods_content].height(750).width(Length::FillPortion(1)),
                     Space::with_width(12.0),
                     column![
-                        column![browser_content].height(350),
+                        column![browser_content].height(350).padding(5),
                         Space::with_height(8.0),
                         column![mod_details_content].height(350),
-                    ]
+                    ].width(Length::FillPortion(1))
                 ]
                 .height(Length::Fill),
-                button_bar
+                button_bar.padding(5)
             ]
         )
             .into()

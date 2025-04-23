@@ -87,7 +87,7 @@ impl Profile {
                 .height(Length::Fill)
         )
             .style(item_style)
-            .height(80)
+            .height(65)
             .into()
     }
 }
