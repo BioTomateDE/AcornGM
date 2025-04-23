@@ -5,6 +5,5 @@ pub use login1::MsgLogin;
 pub struct SceneLogin {
     pub temp_login_token: String,
     pub url: String,
-    pub request_listener_active: bool,
 }
 

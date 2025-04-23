@@ -3,12 +3,11 @@ use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
 use webbrowser;
-use cli_clipboard::ClipboardProvider;
-use log::error;
+use log::{error, info, warn};
+use reqwest::StatusCode;
 use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
-use reqwest::blocking::Client as ReqClient;
 use crate::scenes::login::SceneLogin;
 
 #[derive(Debug, Clone)]
@@ -18,6 +17,7 @@ pub enum MsgLogin {
     LoginExternal,
     CopyLink,
     SubRequestAccessToken,
+    AsyncResponseAccessToken(Option<String>),
 }
 
 
@@ -35,77 +35,29 @@ impl Scene for SceneLogin {
             MsgLogin::LoginExternal => {
                 self.do_external_login(app)
                     .unwrap_or_else(|e| show_error_dialogue("Error while logging in", &e))
-            },
-
+            }
             MsgLogin::BackToHomepage => {
                 app.active_scene = SceneType::HomePage(SceneHomePage {});
-            },
-
+            }
             MsgLogin::Next => {
                 app.active_scene = SceneType::HomePage(SceneHomePage {});
-            },
-
-            MsgLogin::CopyLink => {
-                match cli_clipboard::ClipboardContext::new() {
-                    Ok(mut ctx) => {
-                        if let Err(error) = ctx.set_contents(self.url.clone()) {
-                            println!("[ERROR @ login::update]  Could not set contents of clipboard: {error}");
-                        } else {
-                            println!("[INFO @ login::update]  Set contents of clipboard to {}", self.url);
-                        }
-                    },
-                    Err(error) => {
-                        println!("[ERROR @ login::update]  Could not initialize clipboard: {error}");
-                        return Command::none();
-                    },
-                };
-            },
-
-            MsgLogin::SubRequestAccessToken => {
-                #[derive(Debug, Clone, Deserialize)]
-                struct MyResponseJson {
-                    access_token: String,
-                }
-
-                let mut body = HashMap::new();
-                body.insert("temp_login_token", self.temp_login_token.clone());
-                body.insert("device_info", serde_json::to_string(&app.device_info).expect("Could not convert device info to json"));
-
-                let client = ReqClient::new();
-                let response = client
-                    .post(format!("{ACORN_BASE_URL}/api/access_token"))
-                    .json(&body)
-                    .send();
-
-                if app.access_token.is_some() { return Command::none() }
-
-                if let Err(e) = response {
-                    println!("[ERROR @ <async task>login::update]  Could not get access token from AcornGM server: {e}");
-                    return Command::none()
-                }
-                let resp: reqwest::Result<MyResponseJson> = response.unwrap().json();
-                if let Err(e) = resp {
-                    println!("[ERROR @ <async task>login::update]  Could not get json from response: {e}");
-                    return Command::none()
-                }
-
-                // request success; access token aquired
-                let access_token = resp.unwrap().access_token;
-                println!("[INFO @ <async task>login::update]  Got access token: {access_token}");
-                app.access_token = Some(access_token);
             }
+            MsgLogin::CopyLink => {
+                self.set_clipboard();
+            }
+            MsgLogin::SubRequestAccessToken => {
+                return self.sub_request_access_token(app)
+            }
+            MsgLogin::AsyncResponseAccessToken(Some(token)) => {
+                app.access_token = Some(token);
+            }
+            MsgLogin::AsyncResponseAccessToken(None) => {}
         }
         Command::none()
     }
 
     fn view<'a>(&self, app: &'a MyApp) -> Element<'a, Msg> {
-        let mut status_string: &'static str = "Idle";
-        if app.access_token.is_some() {
-            status_string = "Success";
-        }
-        if self.request_listener_active {
-            status_string = "In Browser";
-        }
+        let status_string: &'static str = if app.access_token.is_some() {"Logged in"} else {"Not logged in"};
 
         let main_content = container(
             column![
@@ -182,9 +134,101 @@ impl SceneLogin {
 
         webbrowser::open(&self.url)
             .map_err(|e| format!("Failed to open browser: {e}"))?;
-            
-        self.request_listener_active = true;
+
         Ok(())
+    }
+    
+    fn sub_request_access_token(&mut self, app: &mut MyApp) -> Command<Msg> {
+        if app.access_token.is_some() {
+            return Command::none()
+        }
+
+        let mut body = HashMap::new();
+        body.insert("temp_login_token", self.temp_login_token.clone());
+        body.insert("device_info", serde_json::to_string(&app.device_info)
+            .expect("Could not convert device info to json"));
+
+        Command::perform(async move { request_access_token(body) },
+            |result| Msg::Login(MsgLogin::AsyncResponseAccessToken(result)),
+        )
+    }
+    
+    fn set_clipboard(&mut self) {
+        let mut clipboard = match arboard::Clipboard::new() {
+            Ok(clipboard) => clipboard,
+            Err(e) => {
+                error!("Could not initialize clipboard: {e}");
+                return
+            }
+        };
+        if let Err(e) = clipboard.set_text(&self.url) {
+            error!("Could not set clipboard contents: {e}");
+        } else {
+            info!("Set clipboard contents to {}", self.url);
+        }
+    }
+}
+
+
+fn request_access_token(body: HashMap<&str, String>) -> Option<String> {
+    #[derive(Debug, Deserialize)]
+    struct SuccessResponseJson {
+        access_token: String,
+    }
+    #[derive(Debug, Deserialize)]
+    struct ErrorResponseJson {
+        error: String,
+    }
+
+    let client = reqwest::blocking::Client::new();
+    let resp = client
+        .post(format!("{ACORN_BASE_URL}/api/access_token"))
+        .json(&body)
+        .send();
+    
+    let resp = match resp {
+        Ok(resp) => resp,
+        Err(e) => {
+            error!("Request error: {e}");
+            return None
+        }
+    };
+    
+    let status: StatusCode = resp.status();
+    if status.is_client_error() {
+        let body: String = resp.text().unwrap_or("<invalid string>".to_string());
+        match serde_json::from_str::<ErrorResponseJson>(&body) {
+            Ok(json) => error!("Client error response {}: {}", status.formatted(), json.error),
+            Err(_) => error!("(Raw) Client error response {}: {}", status.formatted(), body),
+        }
+        return None
+    }
+    if status.is_server_error() {
+        let body: String = resp.text().unwrap_or("<invalid string>".to_string());
+        match serde_json::from_str::<ErrorResponseJson>(&body) {
+            Ok(json) => warn!("Server error response {}: {}", status.formatted(), json.error),
+            Err(_) => warn!("(Raw) Server error response {}: {}", status.formatted(), body),
+        }
+        return None
+    }
+
+    let json = match resp.json::<SuccessResponseJson>() {
+        Ok(json) => json,
+        Err(e) => {
+            error!("JSON parse error: {e}");
+            return None
+        }
+    };
+
+    Some(json.access_token)
+}
+
+trait StatusCodeFmt {
+    fn formatted(&self) -> String;
+}
+impl StatusCodeFmt for StatusCode {
+    fn formatted(&self) -> String {
+        format!("{} - {}", self.as_u16(), self.canonical_reason().unwrap_or("<unknown status>"))
     }
 }
 

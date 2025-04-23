@@ -11,7 +11,7 @@ use iced::advanced::image::Data;
 use iced::widget::image::Handle;
 use iced::widget::text;
 use image::DynamicImage;
-use log::error;
+use log::{error, info};
 use crate::{Msg, MyApp, Scene};
 use crate::utility::{hash_file, GameInfo, GameType, Version};
 
@@ -83,7 +83,7 @@ fn make_profile_dir_name_valid(profile_name: &str) -> String {
 
 fn detect_game_and_version(data_file_path: &Path) -> Result<GameInfo, String> {
     let hash: String = hash_file(data_file_path)?;      // {..} SLOW OPERATION
-    println!("Game data.win SHA-256 Hash: {hash}");
+    info!("Game data.win SHA-256 Hash: {hash}");
 
     match hash.as_str() {
         "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {

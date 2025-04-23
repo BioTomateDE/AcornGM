@@ -138,10 +138,8 @@ impl Application for MyApp {
     }
     fn subscription(&self) -> Subscription<Msg> {
         if let SceneType::Login(scene) = &self.active_scene {
-            if scene.request_listener_active {
-                return time::every(Duration::new(3, 0))
-                    .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
-            }
+            return time::every(Duration::new(3, 0))
+                .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
         }
         time::every(Duration::new(10, 0))
             .map(|_| Msg::Global(MsgGlobal::Keepalive))

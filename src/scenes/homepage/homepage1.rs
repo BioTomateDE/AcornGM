@@ -60,7 +60,6 @@ impl Scene for SceneHomePage {
                 app.active_scene = SceneType::Login(SceneLogin {
                     temp_login_token,
                     url,
-                    request_listener_active: false,
                 });
             },
         }
