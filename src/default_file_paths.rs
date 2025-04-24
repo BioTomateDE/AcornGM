@@ -89,3 +89,8 @@ pub fn get_home_directory(logger: Arc<CustomLogger>) -> PathBuf {
     std::process::exit(1);
 }
 
+
+pub fn get_resource_image_path(app_root: &PathBuf, filename: &str) -> PathBuf {
+    // replace with "resources/images" for release build?
+    app_root.join("../../resources/images").join(filename)
+}

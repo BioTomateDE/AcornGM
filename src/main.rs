@@ -8,10 +8,11 @@ use std::sync::Arc;
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Element, Font, Pixels, Size, Subscription};
 use iced::Settings;
-use log::error;
+use log::{error, warn};
 use biologischer_log::{init_logger, CustomLogger};
+use iced::window::Icon;
 use once_cell::sync::Lazy;
-use crate::default_file_paths::get_home_directory;
+use crate::default_file_paths::{get_home_directory, get_resource_image_path};
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
 use crate::utility::{get_device_info, show_error_dialogue, DeviceInfo};
@@ -49,19 +50,21 @@ enum SceneType {
 
 #[derive(Clone)]
 struct MyApp {
-    flags: MyAppFlags,
     home_dir: PathBuf,
     app_root: PathBuf,
     device_info: DeviceInfo,
     profiles: Vec<Profile>,
     access_token: Option<String>,
     active_scene: SceneType,
+    main_window_id: iced::window::Id,
+    logger: Arc<CustomLogger>,
 }
 
 #[derive(Clone)]
 struct MyAppFlags {
     main_window_id: iced::window::Id,
     logger: Arc<CustomLogger>,
+    app_root: PathBuf,
 }
 
 const COLOR_TEXT1: Lazy<Color> = Lazy::new(|| Color::new(0.906, 0.890, 0.835, 1.0));
@@ -79,17 +82,6 @@ impl Application for MyApp {
 
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
         let home_dir: PathBuf = get_home_directory(flags.logger.clone());
-        let app_root: PathBuf = match std::env::current_exe() {
-            Ok(exe_path) => exe_path
-                .parent()
-                .expect("Could not get parent directory of self executable file")
-                .to_path_buf(),
-
-            Err(e) => {
-                error!("Could not get path of self executable file: {e}");
-                std::process::exit(1);
-            }
-        };
         let profiles: Vec<Profile> = load_profiles(&home_dir).unwrap_or_else(|e| {
             show_error_dialogue("Could not get AcornGM profiles", &e);
             vec![]
@@ -97,13 +89,14 @@ impl Application for MyApp {
         let device_info: DeviceInfo = get_device_info();
 
         (Self {
-            flags,
             home_dir,
-            app_root,
+            app_root: flags.app_root,
             device_info,
             profiles,
             access_token: None,   // TODO load from file
             active_scene: SceneType::HomePage(SceneHomePage {}),
+            main_window_id: flags.main_window_id,
+            logger: flags.logger,
         }, Command::none())
     }
     fn title(&self) -> String {
@@ -139,7 +132,7 @@ impl Application for MyApp {
         iced::Theme::GruvboxDark
     }
     fn subscription(&self) -> Subscription<Msg> {
-        if let SceneType::Login(scene) = &self.active_scene {
+        if let SceneType::Login(_) = &self.active_scene {
             return time::every(Duration::new(3, 0))
                 .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
         }
@@ -162,7 +155,27 @@ impl MyApp {
 pub fn main() -> iced::Result {
     let logger = init_logger(env!("CARGO_PKG_NAME"));
 
-    let main_window_id: iced::window::Id = iced::window::Id::unique();
+    let app_root: PathBuf = match std::env::current_exe() {
+        Ok(exe_path) => exe_path
+            .parent()
+            .expect("Could not get parent directory of self executable file")
+            .to_path_buf(),
+
+        Err(e) => {
+            error!("Could not get path of self executable file: {e}");
+            logger.shutdown();
+            std::process::exit(1);
+        }
+    };
+    
+    let icon_path: PathBuf = get_resource_image_path(&app_root, "logo.png");
+    let icon: Option<Icon> = match iced::window::icon::from_file(icon_path) {
+        Ok(icon) => Some(icon),
+        Err(e) => {
+            warn!("Could not load icon logo: {e}");
+            None
+        }
+    };
 
     let window_settings = iced::window::Settings {
         size: WINDOW_SIZE_NORMAL,
@@ -174,7 +187,7 @@ pub fn main() -> iced::Result {
         decorations: true,
         transparent: false,
         level: iced::window::Level::Normal,
-        icon: None,     // TODO
+        icon,
         platform_specific: iced::window::settings::PlatformSpecific::default(),
         exit_on_close_request: true,
     };
@@ -183,8 +196,9 @@ pub fn main() -> iced::Result {
         id: Some("main".to_string()),
         window: window_settings,
         flags: MyAppFlags {
-            main_window_id,
+            main_window_id: iced::window::Id::unique(),
             logger,
+            app_root,
         },
         fonts: vec![],
         default_font: Font::DEFAULT,

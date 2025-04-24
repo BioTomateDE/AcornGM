@@ -1,5 +1,5 @@
 use crate::scenes::view_profile::{AcornMod, SceneViewProfile};
-use iced::{alignment, Color, Command, Element, Length};
+use iced::{Color, Command, Element, Length};
 use iced::advanced::image::Handle;
 use iced::widget::{container, row, column, text, button, Image, Container, scrollable, Space};
 use iced::widget::container::Appearance;
@@ -82,7 +82,7 @@ impl Scene for SceneViewProfile {
         match message {
             MsgViewProfile::BackToHomepage => {
                 app.active_scene = SceneType::HomePage(SceneHomePage);
-                return iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_NORMAL)
+                return iced::window::resize(app.main_window_id, WINDOW_SIZE_NORMAL)
             }
 
             MsgViewProfile::ViewModDetails(acorn_mod) => {

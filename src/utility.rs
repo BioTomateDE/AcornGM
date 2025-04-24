@@ -7,9 +7,10 @@ use iced::widget::image::Handle;
 use log::{error, info};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
+use crate::default_file_paths::get_resource_image_path;
 
-pub fn get_default_icon_image(cwd: &PathBuf) -> Handle {
-    let path: PathBuf = Path::new(&cwd).join("./resources/textures/default_profile_icon.png");
+pub fn get_default_icon_image(app_root: &PathBuf) -> Handle {
+    let path: PathBuf = get_resource_image_path(app_root, "default_profile_icon.png");
     if !path.is_file() {
         error!("Could not get default icon because its path doesn't exist: {}", path.display());
         return Handle::from_pixels(1, 1, [0, 0, 0, 0])
@@ -68,6 +69,7 @@ impl button::StyleSheet for TransparentButton {
     }
 }
 
+// pub const ACORN_BASE_URL: &'static str = "http://localhost:8000";
 pub const ACORN_BASE_URL: &'static str = "https://acorngm.onrender.com";
 
 #[derive(Debug)]
@@ -164,8 +166,8 @@ pub enum PlatformType {
 }
 
 #[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
-    pub host_name: String,
     pub distro_pretty: String,
     pub platform_pretty: String,
     pub desktop_environment_pretty: String,
@@ -174,7 +176,6 @@ pub struct DeviceInfo {
 
 pub fn get_device_info() -> DeviceInfo {
     DeviceInfo {
-        host_name: whoami::fallible::hostname().unwrap_or_else(|_| "<unknown hostname>".to_string()),
         distro_pretty: whoami::fallible::distro().unwrap_or_else(|_| "<unknown distro>".to_string()),
         platform_pretty: whoami::platform().to_string(),
         desktop_environment_pretty: whoami::desktop_env().to_string(),

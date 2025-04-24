@@ -1,13 +1,12 @@
-use std::collections::HashMap;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button, Space};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
 use webbrowser;
 use log::{error, info, warn};
 use reqwest::StatusCode;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
+use crate::utility::{show_error_dialogue, DeviceInfo, ACORN_BASE_URL};
 use crate::scenes::login::SceneLogin;
 use crate::ui_templates::generate_button_bar;
 
@@ -129,10 +128,10 @@ impl SceneLogin {
             return Command::none()
         }
 
-        let mut body = HashMap::new();
-        body.insert("temp_login_token", self.temp_login_token.clone());
-        body.insert("device_info", serde_json::to_string(&app.device_info)
-            .expect("Could not convert device info to json"));
+        let body = GetAccessTokenRequest {
+            temp_login_token: self.temp_login_token.clone(),
+            device_info: app.device_info.clone(),
+        };
 
         Command::perform(async move { request_access_token(body) },
             |result| Msg::Login(MsgLogin::AsyncResponseAccessToken(result)),
@@ -156,7 +155,7 @@ impl SceneLogin {
 }
 
 
-fn request_access_token(body: HashMap<&str, String>) -> Option<String> {
+fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
     #[derive(Debug, Deserialize)]
     struct SuccessResponseJson {
         access_token: String,
@@ -184,7 +183,13 @@ fn request_access_token(body: HashMap<&str, String>) -> Option<String> {
     if status.is_client_error() {
         let body: String = resp.text().unwrap_or("<invalid string>".to_string());
         match serde_json::from_str::<ErrorResponseJson>(&body) {
-            Ok(json) => error!("Client error response {}: {}", status.formatted(), json.error),
+            Ok(json) => {
+                if status.as_u16() != 404 {
+                    // if status is 404 and body is valid json error, it means that temp_login_token doesn't exist yet
+                    // because the user is still in the login process (not finished yet)
+                    error!("Client error response {}: {}", status.formatted(), json.error);
+                }
+            }
             Err(_) => error!("(Raw) Client error response {}: {}", status.formatted(), body),
         }
         return None
@@ -216,5 +221,11 @@ impl StatusCodeFmt for StatusCode {
     fn formatted(&self) -> String {
         format!("{} - {}", self.as_u16(), self.canonical_reason().unwrap_or("<unknown status>"))
     }
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct GetAccessTokenRequest {
+    temp_login_token: String,
+    device_info: DeviceInfo,
 }
 

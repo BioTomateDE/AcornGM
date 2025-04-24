@@ -1,5 +1,5 @@
 use iced::{alignment, Color, Element, Length};
-use iced::widget::{button, container, row, text, Button, Container, Row, Space};
+use iced::widget::{container, row, text, Container, Row, Space};
 use iced::widget::container::Appearance;
 use crate::Msg;
 

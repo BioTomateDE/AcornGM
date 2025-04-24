@@ -241,7 +241,7 @@ impl SceneCreateProfile {
             mod_details: Default::default(),
         });
         // resize window for new scene
-        Ok(iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
+        Ok(iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
     }
 
     fn pick_data_path(&mut self, app: &mut MyApp) {

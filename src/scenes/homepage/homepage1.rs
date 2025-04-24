@@ -7,7 +7,7 @@ use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_
 use crate::scenes::browser::ModBrowser;
 use crate::scenes::create_profile::{MsgCreateProfile2, SceneCreateProfile};
 use crate::scenes::homepage::{MsgHomePage, SceneHomePage};
-use crate::scenes::login::SceneLogin;
+use crate::scenes::login::{generate_token, SceneLogin};
 use crate::scenes::view_profile::SceneViewProfile;
 use crate::ui_templates::{create_divider, generate_button_bar, list_style};
 use crate::utility::{get_default_icon_image, GameInfo};
@@ -51,11 +51,11 @@ impl Scene for SceneHomePage {
                         mod_details: Default::default(),
                     });
                 }
-                return iced::window::resize(app.flags.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
+                return iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
             },
 
             MsgHomePage::Login => {
-                let temp_login_token: String = uuid::Uuid::new_v4().to_string();
+                let temp_login_token: String = generate_token();
                 let url: String = format!("{ACORN_BASE_URL}/goto_discord_auth?temp_login_token={}", temp_login_token);
 
                 app.active_scene = SceneType::Login(SceneLogin {

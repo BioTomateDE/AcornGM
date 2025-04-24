@@ -1,7 +1,6 @@
-use std::fmt::Alignment;
 use std::path::PathBuf;
-use iced::{alignment, Command, Element, Length};
-use iced::widget::{container, column, text, row, button, Image, text_input, Space, horizontal_space};
+use iced::{alignment, Command, Element};
+use iced::widget::{container, column, text, button, Image, text_input};
 use iced::widget::image::Handle;
 use log::{error, info, warn};
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
