@@ -18,7 +18,7 @@ fn divider_style(_theme: &iced::Theme) -> Appearance {
 pub fn create_divider() -> Element<'static, Msg> {
     Container::new(text(""))
         .height(0.75)                   // Height of the divider
-        .width(iced::Length::Fill)      // Full width
+        .width(Length::Fill)      // Full width
         .center_x()                     // Center horizontally
         .style(divider_style)
         .into()

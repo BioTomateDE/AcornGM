@@ -32,25 +32,12 @@ pub struct Profile {
     pub index: usize,                   // index in .profiles to identify profile on press
     pub name: String,
     pub game_info: GameInfo,
-    pub date_created: chrono::DateTime<chrono::Local>,
-    pub last_used: chrono::DateTime<chrono::Local>,
+    pub date_created: DateTime<Local>,
+    pub last_used: DateTime<Local>,
     pub mods: Vec<AcornModLocal>,
     pub icon: Handle,
     pub path: PathBuf,
 }
-// impl Default for Profile {
-//     fn default() -> Self {
-//         Self {
-//             index: 0,
-//             name: "Unknown Profile".to_string(),
-//             game_info: Default::default(),
-//             date_created: Default::default(),
-//             last_used: Default::default(),
-//             mods: vec![],
-//             icon: Handle::from_pixels(1, 1, [0, 0, 0, 0]),
-//         }
-//     }
-// }
 impl Profile {
     fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
         let icon: Image<Handle> = Image::new(self.icon.clone());
@@ -211,7 +198,7 @@ pub fn update_profile_config(profile: &Profile) -> Result<(), String> {
     let profile_json = serde_json::json!({
         "displayName": profile.name,
         "dateCreated": profile.date_created.to_utc().to_string(),
-        "lastUsed": chrono::Utc::now().to_string(),
+        "lastUsed": Utc::now().to_string(),
         "gameName": profile.game_info.game_type.to_string(),
         "gameVersion": [profile.game_info.version.major, profile.game_info.version.minor],
         "mods": mod_ids,
