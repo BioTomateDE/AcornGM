@@ -5,6 +5,7 @@ mod homepage1;
 use std::fs;
 use std::fs::ReadDir;
 use std::path::PathBuf;
+use chrono::{DateTime, Local, Utc};
 use iced::{alignment, Color, Element, Length};
 use iced::widget::{button, column, container, row, text, Container, Image, Space};
 use iced::widget::container::Appearance;
@@ -148,14 +149,14 @@ pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Pr
         let game_type: GameType = GameType::from_name(&profile_json.game_name);
         let game_version: Version = Version::from_vec(profile_json.game_version);
         let game_info: GameInfo = GameInfo { game_type, version: game_version };
-        let date_created: chrono::DateTime<chrono::Local> = match profile_json.date_created.parse() {
+        let date_created: DateTime<Local> = match profile_json.date_created.parse() {
             Ok(date) => date,
             Err(e) => {
                 warn!("Could not parse creation datetime \"{}\" of Profile \"{}\": {e}", profile_json.date_created, path.display());
                 continue
             }
         };
-        let last_used: chrono::DateTime<chrono::Local> = match profile_json.date_created.parse() {
+        let last_used: DateTime<Local> = match profile_json.last_used.parse() {
             Ok(ok) => ok,
             Err(e) => {
                 warn!("Could not parse last used datetime \"{}\" of Profile \"{}\": {e}", profile_json.last_used, path.display());
@@ -166,7 +167,10 @@ pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Pr
         // maybe check if icon exists?
         let icon: Handle = Handle::from_path(icon_file);
 
-        let mods: Vec<AcornModLocal> = load_profile_mods(&profiles_dir, profile_json.mods)?;
+        let mods: Vec<AcornModLocal> = load_profile_mods(&path, profile_json.mods).unwrap_or_else(|e| {
+            warn!("Could not load mods of profile {path:?}: {e}");
+            vec![]
+        });
 
         profiles.push(Profile {
             index: profiles.len(),
@@ -179,6 +183,8 @@ pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Pr
             path,
         })
     }
+
+    profiles.sort_by(|a, b| b.last_used.cmp(&a.last_used));
     Ok(profiles)
 }
 
@@ -214,7 +220,8 @@ pub fn update_profile_config(profile: &Profile) -> Result<(), String> {
     let string = serde_json::to_string_pretty(&profile_json)
         .map_err(|e| format!("Could not convert profile config json to string: {e}"))?;
 
-    fs::write(&profile.path, string)
+    let path: PathBuf = profile.path.join("profile.json");
+    fs::write(path, string)
         .map_err(|e| format!("Could not write profile config file: {e}"))?;
 
     Ok(())

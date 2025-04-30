@@ -26,7 +26,7 @@ pub fn load_settings(home_dir: &PathBuf, is_first_launch: bool) -> Result<AcornS
 pub fn save_settings(home_dir: &PathBuf, settings: &AcornSettings) -> Result<(), String> {
     let path: PathBuf = home_dir.join("settings.json");
 
-    let string: String = serde_json::to_string(settings)
+    let string: String = serde_json::to_string_pretty(settings)
         .map_err(|e| format!("Could not build settings json: {e}"))?;
 
     fs::write(&path, string)

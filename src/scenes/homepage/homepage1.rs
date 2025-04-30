@@ -2,7 +2,7 @@ use std::sync::{Arc, Mutex};
 use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
 use iced::{alignment, Command, Element, Length};
 use iced::widget::{button, column, container, row, scrollable, text, Container, Space};
-use log::error;
+use log::{error, info};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_VIEW_PROFILE};
 use crate::scenes::browser::ModBrowser;
 use crate::scenes::create_profile::{MsgCreateProfile2, SceneCreateProfile};
@@ -44,6 +44,7 @@ impl Scene for SceneHomePage {
                     profile.last_used = chrono::Local::now();
                     update_profile_config(profile)
                         .unwrap_or_else(|e| error!("Could not save profile (for last used update): {e}"));
+                    info!("Updated last used timestamp of profile \"{}\"", profile.name);
 
                     app.active_scene = SceneType::ViewProfile(SceneViewProfile {
                         mods: vec![],

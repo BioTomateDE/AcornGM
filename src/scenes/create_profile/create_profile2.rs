@@ -219,11 +219,15 @@ impl SceneCreateProfile {
     fn create_profile(&mut self, app: &mut MyApp) -> Result<Command<Msg>, String> {
         let profile_dir_name: String = make_profile_dir_name_valid(&self.profile_name);
         let profile_dir: PathBuf = app.home_dir.join("Profiles").join(profile_dir_name);
-        fs::create_dir_all(&profile_dir)
-            .map_err(|e| format!("Could not create profile directory: {e}"))?;
 
-        fs::create_dir(profile_dir.join("Mods"))
-            .map_err(|e| format!("Could not create profile mods directory: {e}"))?;
+        if !profile_dir.exists() {
+            fs::create_dir_all(&profile_dir)
+                .map_err(|e| format!("Could not create profile directory: {e}"))?;
+        }
+        if !profile_dir.exists() {
+            fs::create_dir_all(profile_dir.join("Mods"))
+                .map_err(|e| format!("Could not create profile mods directory: {e}"))?;
+        }
 
         let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
 
