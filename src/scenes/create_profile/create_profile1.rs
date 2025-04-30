@@ -3,11 +3,13 @@ use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, button, Image, text_input};
 use iced::widget::image::Handle;
 use log::{error, info, warn};
+use rfd::FileDialog;
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
 use crate::scenes::homepage::SceneHomePage;
 use crate::default_file_paths::get_default_image_prompt_path;
 use crate::scenes::create_profile::{check_profile_name_valid, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
+use crate::utility::show_error_dialogue;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
@@ -15,6 +17,7 @@ pub enum MsgCreateProfile1 {
     StepNext,
     EditProfileName(String),
     EditProfileIcon,
+    PickedProfileIcon(Option<PathBuf>),
 }
 
 impl SceneCreateProfile {
@@ -30,8 +33,12 @@ impl SceneCreateProfile {
         match message {
             MsgCreateProfile1::BackToHomepage => {
                 app.active_scene = SceneType::HomePage(SceneHomePage {});
-            },
+            }
             MsgCreateProfile1::StepNext => {
+                if self.is_file_picker_open {
+                    show_error_dialogue("AcornGM User Error", "Please close the file picker before changing scene.");
+                    return Command::none()
+                }
                 if self.is_profile_name_valid {
                     self.stage = 2;
                 }
@@ -41,7 +48,14 @@ impl SceneCreateProfile {
                 self.profile_name = profile_name;
             }
             MsgCreateProfile1::EditProfileIcon => {
-                self.edit_profile_icon(app)
+                if !self.is_file_picker_open {
+                    self.is_file_picker_open = true;
+                    return self.pick_profile_icon_image(app)
+                }
+            }
+            MsgCreateProfile1::PickedProfileIcon(image_path) => {
+                self.is_file_picker_open = false;
+                self.set_icon_image(image_path);
             }
         }
         Command::none()
@@ -96,20 +110,24 @@ impl SceneCreateProfile {
 }
 
 impl SceneCreateProfile {
-    fn edit_profile_icon(&mut self, app: &MyApp) {
+    fn pick_profile_icon_image(&mut self, app: &MyApp) -> Command<Msg> {
         let origin_path: PathBuf = get_default_image_prompt_path().unwrap_or_else(|e| {
             warn!("Could not get default image prompt path: {e}");
             app.app_root.clone()
         });
 
-        // this blocks main thread
-        // TODO threading
-        let image_path: Option<PathBuf> = rfd::FileDialog::new()
+        let file_dialog: FileDialog = FileDialog::new()
             .set_title("Pick an image for your AcornGM Profile icon")
             .add_filter("Image", &["png", "jpg", "jpeg", "webp", "gif"])
-            .set_directory(origin_path)
-            .pick_file();
-        
+            .set_directory(origin_path);
+
+        Command::perform(
+            async move { file_dialog.pick_file() },
+            |i| Msg::CreateProfile1(MsgCreateProfile1::PickedProfileIcon(i))
+        )
+    }
+
+    fn set_icon_image(&mut self, image_path: Option<PathBuf>) {
         let image_path: PathBuf = match image_path {
             Some(path) => path,
             None => {
@@ -117,12 +135,12 @@ impl SceneCreateProfile {
                 return;
             }
         };
-        
+
         if !image_path.is_file() {
             warn!("Specified image path for profile icon doesn't exist: {}", image_path.display());
             return;
         }
-        
+
         // success, set profile icon
         self.icon = Handle::from_path(image_path);
     }

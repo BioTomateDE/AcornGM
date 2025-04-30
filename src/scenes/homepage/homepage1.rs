@@ -34,6 +34,7 @@ impl Scene for SceneHomePage {
                     game_name: "".to_string(),
                     game_version_str: "".to_string(),
                     is_game_version_valid: true,        // to hide error when no data file is loaded
+                    is_file_picker_open: false,
                 });
             },
 

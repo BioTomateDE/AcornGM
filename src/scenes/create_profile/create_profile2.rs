@@ -8,6 +8,7 @@ use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
 use crate::utility::{remove_spaces, show_error_dialogue, GameType};
 use log::{error, info, warn};
+use rfd::FileDialog;
 use crate::scenes::create_profile::{detect_game_and_version, make_profile_dir_name_valid, resize_and_save_icon, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
 
@@ -19,6 +20,7 @@ pub enum MsgCreateProfile2 {
     EditDataPath(String),
     SubmitDataPath,
     PickDataPath,
+    PickedDataPath(Option<PathBuf>),
     EditGameName(String),
     EditGameVersion(String),
 }
@@ -39,10 +41,18 @@ impl SceneCreateProfile {
             },
 
             MsgCreateProfile2::StepBack => {
+                if self.is_file_picker_open {
+                    show_error_dialogue("AcornGM User Error", "Please close the file picker before changing scene.");
+                    return Command::none()
+                }
                 self.stage = 1;
             },
 
             MsgCreateProfile2::StepNext => {
+                if self.is_file_picker_open {
+                    show_error_dialogue("AcornGM User Error", "Please close the file picker before changing scene.");
+                    return Command::none()
+                }
                 if !self.is_profile_name_valid || !self.is_game_version_valid {
                     return Command::none()
                 }
@@ -64,7 +74,28 @@ impl SceneCreateProfile {
             },
 
             MsgCreateProfile2::PickDataPath => {
-                self.pick_data_path(app);
+                if !self.is_file_picker_open {
+                    self.is_file_picker_open = true;
+                    return self.pick_data_path(app)
+                }
+            },
+
+            MsgCreateProfile2::PickedDataPath(Some(data_path)) => {
+                self.is_file_picker_open = false;
+                let data_path: &str = match data_path.to_str() {
+                    Some(string) => string,
+                    None => {
+                        error!("Could not convert data path to string: {data_path:?}");
+                        return Command::none()
+                    }
+                };
+                self.data_file_path = data_path.to_string();
+                self.detect_game();
+            },
+
+            MsgCreateProfile2::PickedDataPath(None) => {
+                self.is_file_picker_open = false;
+                info!("User did not pick a data file and instead cancelled the operation.");
             },
 
             MsgCreateProfile2::EditGameName(name) => {
@@ -248,31 +279,21 @@ impl SceneCreateProfile {
         Ok(iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
     }
 
-    fn pick_data_path(&mut self, app: &mut MyApp) {
+    fn pick_data_path(&mut self, app: &mut MyApp) -> Command<Msg> {
         let origin_path: PathBuf = get_default_data_file_dir().unwrap_or_else(|e| {
             warn!("Could not get default data file path: {e}");
             app.home_dir.clone()
         });
 
-        // this file picker blocks the main thread; causing it to appear as "Not responding"
-        // TODO different thread
-        let data_path: Option<PathBuf> = rfd::FileDialog::new()
+        let file_dialog: FileDialog = FileDialog::new()
             .set_title("Pick a GameMaker data file for your AcornGM profile")
             .set_directory(&origin_path)
-            .add_filter("GameMaker Data File", &["win", "unx"])
-            .pick_file();
+            .add_filter("GameMaker Data File", &["win", "unx"]);
 
-        let data_path: PathBuf = match data_path {
-            Some(path) => path,
-            None => {
-                info!("User did not pick a data file and instead cancelled the operation.");
-                return
-            }
-        };
-
-        let data_path: &str = data_path.to_str().expect("Could not convert data path to string");
-        self.data_file_path = data_path.to_string();
-        self.detect_game();
+        Command::perform(
+            async move { file_dialog.pick_file() },
+            |i| Msg::CreateProfile2(MsgCreateProfile2::PickedDataPath(i))
+        )
     }
 }
 

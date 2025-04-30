@@ -27,6 +27,7 @@ pub struct SceneCreateProfile {
     pub game_name: String,      // used as a buffer for text input; represents .game_info(GameInfo::Other(string))
     pub game_version_str: String,
     pub is_game_version_valid: bool,
+    pub is_file_picker_open: bool,
 }
 
 impl Scene for SceneCreateProfile {
