@@ -69,8 +69,7 @@ impl button::StyleSheet for TransparentButton {
     }
 }
 
-// pub const ACORN_BASE_URL: &'static str = "http://localhost:8000";
-pub const ACORN_BASE_URL: &'static str = "https://acorngm.onrender.com";
+pub const ACORN_BASE_URL: &'static str = "https://acorngm.biotomatede.hackclub.app";
 
 #[derive(Debug)]
 pub struct ParseVersionError;
