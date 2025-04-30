@@ -2,6 +2,7 @@ mod scenes;
 mod utility;
 mod default_file_paths;
 mod ui_templates;
+mod settings;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -12,12 +13,13 @@ use log::{error, warn};
 use biologischer_log::{init_logger, CustomLogger};
 use iced::window::Icon;
 use once_cell::sync::Lazy;
-use crate::default_file_paths::{get_home_directory, get_resource_image_path};
+use crate::default_file_paths::{check_if_first_launch, get_home_directory, get_resource_image_path};
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
 use crate::utility::{get_device_info, show_error_dialogue, DeviceInfo};
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
+use crate::settings::{load_settings, AcornSettings};
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -53,11 +55,11 @@ struct MyApp {
     home_dir: PathBuf,
     app_root: PathBuf,
     device_info: DeviceInfo,
+    settings: AcornSettings,
     profiles: Vec<Profile>,
-    access_token: Option<String>,
     active_scene: SceneType,
     main_window_id: iced::window::Id,
-    logger: Arc<CustomLogger>,
+    _logger: Arc<CustomLogger>,
 }
 
 #[derive(Clone)]
@@ -82,9 +84,16 @@ impl Application for MyApp {
 
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
         let home_dir: PathBuf = get_home_directory(flags.logger.clone());
-        let profiles: Vec<Profile> = load_profiles(&home_dir).unwrap_or_else(|e| {
+        let is_first_launch: bool = check_if_first_launch(&home_dir);
+        let profiles: Vec<Profile> = load_profiles(&home_dir, is_first_launch).unwrap_or_else(|e| {
             show_error_dialogue("Could not get AcornGM profiles", &e);
             vec![]
+        });
+        let settings: AcornSettings = load_settings(&home_dir, is_first_launch).unwrap_or_else(|e| {
+            show_error_dialogue(
+                "Could not load AcornGM settings",
+                &format!("Error while trying to load AcornGM settings: {e}\n\nThe program will use default settings."));
+            Default::default()
         });
         let device_info: DeviceInfo = get_device_info();
 
@@ -93,10 +102,10 @@ impl Application for MyApp {
             app_root: flags.app_root,
             device_info,
             profiles,
-            access_token: None,   // TODO load from file
+            settings,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             main_window_id: flags.main_window_id,
-            logger: flags.logger,
+            _logger: flags.logger,
         }, Command::none())
     }
     fn title(&self) -> String {
@@ -132,7 +141,7 @@ impl Application for MyApp {
         iced::Theme::GruvboxDark
     }
     fn subscription(&self) -> Subscription<Msg> {
-        if let SceneType::Login(_) = &self.active_scene {
+        if self.settings.access_token.is_none() && matches!(self.active_scene, SceneType::Login(_)) {
             return time::every(Duration::new(3, 0))
                 .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
         }

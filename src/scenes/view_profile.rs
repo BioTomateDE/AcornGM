@@ -8,7 +8,7 @@ use crate::scenes::mod_details::ModDetails;
 use crate::utility::{GameType, PlatformType, Version};
 
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct SceneViewProfile {
     pub profile: Profile,
     pub mods: Vec<AcornMod>,
@@ -29,6 +29,13 @@ pub struct AcornMod {
     pub supported_game_versions: Vec<Version>,
     pub supported_platforms: Vec<PlatformType>,
     pub description: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AcornModLocal {
+    pub acorn_mod: AcornMod,
+    pub active: bool,           // whether the mod is enabled and will modify the game data
+    pub filename: String,       // the name (uuid) of the mod without file extension or directory
 }
 
 impl Default for AcornMod {

@@ -13,6 +13,7 @@ use log::warn;
 use crate::Msg;
 use crate::utility::{GameInfo, GameType, TransparentButton, Version};
 use serde;
+use crate::scenes::view_profile::{AcornMod, AcornModLocal};
 use crate::ui_templates::item_style;
 
 #[derive(Debug, Clone)]
@@ -32,22 +33,23 @@ pub struct Profile {
     pub game_info: GameInfo,
     pub date_created: chrono::DateTime<chrono::Local>,
     pub last_used: chrono::DateTime<chrono::Local>,
-    pub mods: Vec<ModReference>,
+    pub mods: Vec<AcornModLocal>,
     pub icon: Handle,
+    pub path: PathBuf,
 }
-impl Default for Profile {
-    fn default() -> Self {
-        Self {
-            index: 0,
-            name: "Unknown Profile".to_string(),
-            game_info: Default::default(),
-            date_created: Default::default(),
-            last_used: Default::default(),
-            mods: vec![],
-            icon: Handle::from_pixels(1, 1, [0, 0, 0, 0]),
-        }
-    }
-}
+// impl Default for Profile {
+//     fn default() -> Self {
+//         Self {
+//             index: 0,
+//             name: "Unknown Profile".to_string(),
+//             game_info: Default::default(),
+//             date_created: Default::default(),
+//             last_used: Default::default(),
+//             mods: vec![],
+//             icon: Handle::from_pixels(1, 1, [0, 0, 0, 0]),
+//         }
+//     }
+// }
 impl Profile {
     fn view(&self, color_text1: Color, color_text2: Color) -> Element<Msg> {
         let icon: Image<Handle> = Image::new(self.icon.clone());
@@ -101,31 +103,16 @@ struct ProfileJson {
     last_used: String,
     game_name: String,
     game_version: [u32; 2],
-    mods: Vec<ModReference>,
+    mods: Vec<String>,      // list of mods' uuids, sorted by descending priority
 }
 
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ModReference {
-    pub name: String,
-    pub by: String,
-    pub version: String,
-    pub active: bool,
-}
-
-
-
-pub fn load_profiles(home_dir: &PathBuf) -> Result<Vec<Profile>, String> {
-    // check if acorn home dir exists to prevent error message on first launch
-    if !home_dir.is_dir() {
-        warn!("Did not load profiles because the AcornGM home directory does not exist.\
-            This should only happen on the first launch when no profiles are created yet.");
-        return Ok(vec![])
-    }
-    
+pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Profile>, String> {
     let profiles_dir: PathBuf = home_dir.join("./Profiles");
-    let paths: ReadDir = fs::read_dir(profiles_dir)
+    if is_first_launch && !profiles_dir.is_dir() {
+        return Ok(vec![])   // return empty list for profiles on first launch instead of error message
+    }
+
+    let paths: ReadDir = fs::read_dir(&profiles_dir)
         .map_err(|e| format!("Could not get files in Profiles directory: {e}"))?;
 
     let mut profiles: Vec<Profile> = vec![];
@@ -176,16 +163,57 @@ pub fn load_profiles(home_dir: &PathBuf) -> Result<Vec<Profile>, String> {
         // maybe check if icon exists?
         let icon: Handle = Handle::from_path(icon_file);
 
+        let mods: Vec<AcornModLocal> = load_profile_mods(&profiles_dir, profile_json.mods)?;
+
         profiles.push(Profile {
             index: profiles.len(),
             name: profile_json.display_name,
             game_info,
             date_created,
             last_used,
-            mods: profile_json.mods,
+            mods,
             icon,
+            path,
         })
     }
     Ok(profiles)
+}
+
+fn load_profile_mods(profile_dir: &PathBuf, mod_ids: Vec<String>) -> Result<Vec<AcornModLocal>, String> {
+    let mods_dir: PathBuf = profile_dir.join("Mods");
+    if !mods_dir.is_dir() {
+        return Err(format!("Profile mods directory doesn't exist: {mods_dir:?}"))
+    }
+
+    let acorn_mods: Vec<AcornModLocal> = Vec::new();
+
+    for mod_id in mod_ids {
+        let _mod_path: PathBuf = mods_dir.join(format!("{mod_id}.acornmod"));
+        // TODO read mod file as zip and extract infomation
+    }
+
+    Ok(acorn_mods)
+}
+
+
+pub fn update_profile_config(profile: &Profile) -> Result<(), String> {
+    let mod_ids: Vec<String> = profile.mods.iter().map(|i| i.filename.clone()).collect();
+
+    let profile_json = serde_json::json!({
+        "displayName": profile.name,
+        "dateCreated": profile.date_created.to_utc().to_string(),
+        "lastUsed": chrono::Utc::now().to_string(),
+        "gameName": profile.game_info.game_type.to_string(),
+        "gameVersion": [profile.game_info.version.major, profile.game_info.version.minor],
+        "mods": mod_ids,
+    });
+
+    let string = serde_json::to_string_pretty(&profile_json)
+        .map_err(|e| format!("Could not convert profile config json to string: {e}"))?;
+
+    fs::write(&profile.path, string)
+        .map_err(|e| format!("Could not write profile config file: {e}"))?;
+
+    Ok(())
 }
 

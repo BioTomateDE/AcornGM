@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{show_error_dialogue, DeviceInfo, ACORN_BASE_URL};
 use crate::scenes::login::SceneLogin;
+use crate::settings::save_settings;
 use crate::ui_templates::generate_button_bar;
 
 #[derive(Debug, Clone)]
@@ -49,7 +50,10 @@ impl Scene for SceneLogin {
                 return self.sub_request_access_token(app)
             }
             MsgLogin::AsyncResponseAccessToken(Some(token)) => {
-                app.access_token = Some(token);
+                info!("Got access token: {token}");
+                app.settings.access_token = Some(token);
+                save_settings(&app.home_dir, &app.settings).unwrap_or_else(|e|
+                    show_error_dialogue("Could not save AcornGM settings", &format!("Failed to save AcornGM settings: {e}")))
             }
             MsgLogin::AsyncResponseAccessToken(None) => {}
         }
@@ -57,7 +61,7 @@ impl Scene for SceneLogin {
     }
 
     fn view<'a>(&self, app: &'a MyApp) -> Element<'a, Msg> {
-        let status_string: &'static str = if app.access_token.is_some() {"Logged in"} else {"Not logged in"};
+        let status_string: &'static str = if app.settings.access_token.is_some() {"Logged in"} else {"Not logged in"};
 
         let main_content = container(
             column![
@@ -113,7 +117,7 @@ impl Scene for SceneLogin {
 
 impl SceneLogin {
     fn do_external_login(&mut self, app: &MyApp) -> Result<(), String> {
-        if app.access_token.is_some() {
+        if app.settings.access_token.is_some() {
             return Err("Already logged in!".to_string())
         }
 
@@ -124,7 +128,7 @@ impl SceneLogin {
     }
     
     fn sub_request_access_token(&mut self, app: &mut MyApp) -> Command<Msg> {
-        if app.access_token.is_some() {
+        if app.settings.access_token.is_some() {
             return Command::none()
         }
 

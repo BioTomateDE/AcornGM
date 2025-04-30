@@ -1,12 +1,12 @@
 use std::sync::{Arc, Mutex};
-use crate::utility::ACORN_BASE_URL;
+use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
 use iced::{alignment, Command, Element, Length};
 use iced::widget::{button, column, container, row, scrollable, text, Container, Space};
 use log::error;
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_VIEW_PROFILE};
 use crate::scenes::browser::ModBrowser;
 use crate::scenes::create_profile::{MsgCreateProfile2, SceneCreateProfile};
-use crate::scenes::homepage::{MsgHomePage, SceneHomePage};
+use crate::scenes::homepage::{update_profile_config, MsgHomePage, SceneHomePage};
 use crate::scenes::login::{generate_token, SceneLogin};
 use crate::scenes::view_profile::SceneViewProfile;
 use crate::ui_templates::{create_divider, generate_button_bar, list_style};
@@ -38,19 +38,26 @@ impl Scene for SceneHomePage {
             },
 
             MsgHomePage::LoadProfile(index) => {
-                if let Some(profile) = app.profiles.get(index) {
+                if let Some(profile) = app.profiles.get_mut(index) {
+                    // update last used timestamp and save config
+                    profile.last_used = chrono::Local::now();
+                    update_profile_config(profile)
+                        .unwrap_or_else(|e| error!("Could not save profile (for last used update): {e}"));
+
                     app.active_scene = SceneType::ViewProfile(SceneViewProfile {
                         mods: vec![],
                         profile: profile.clone(),
-                        browser: ModBrowser {
-                            search_query: "".to_string(),
-                            use_regex: false,
-                            results: vec![],
-                            show_only_compatible: true,
-                        },
+                        browser: Default::default(),
                         mod_details: Default::default(),
                     });
+                } else {
+                    show_error_dialogue(
+                        "Could not open AcornGM profile",
+                        &format!("Failed to open profile with index {} in profile list with length {}", index, app.profiles.len())
+                    );
+                    return Command::none()
                 }
+
                 return iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
             },
 

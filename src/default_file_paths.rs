@@ -94,3 +94,9 @@ pub fn get_resource_image_path(app_root: &PathBuf, filename: &str) -> PathBuf {
     // replace with "resources/images" for release build?
     app_root.join("../../resources/images").join(filename)
 }
+
+
+/// tries to check if this is your first time launching the program to prevent errors.
+pub fn check_if_first_launch(home_dir: &PathBuf) -> bool {
+    !home_dir.is_dir() && home_dir.parent().map_or(true, |parent| parent.is_dir())
+}

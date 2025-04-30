@@ -12,13 +12,24 @@ pub enum MsgBrowser {
     ToggleOnlyCompatible(bool),
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub struct ModBrowser {
     pub search_query: String,
     pub use_regex: bool,
     pub results: Vec<AcornMod>,
     pub show_only_compatible: bool,
 }
+impl Default for ModBrowser  {
+    fn default() -> Self {
+        Self {
+            search_query: "".to_string(),
+            use_regex: false,
+            results: vec![],
+            show_only_compatible: true,
+        }
+    }
+}
+
 impl ModBrowser {
     pub fn view(&self) -> Element<Msg> {
         let results: Container<Msg> = container(

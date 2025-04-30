@@ -201,6 +201,7 @@ impl SceneCreateProfile {
             last_used: date_now.with_timezone(&chrono::Local),
             mods: vec![],
             icon: self.icon.clone(),
+            path: profile_dir.clone(),
         };
         
         let config_file: PathBuf = profile_dir.join("profile.json");
@@ -211,7 +212,7 @@ impl SceneCreateProfile {
         let config: serde_json::Value = serde_json::json!({
             "displayName": self.profile_name,
             "dateCreated": date_string,
-            "lastUsed": date_string,    // TODO update ts last_used value when you load the profile
+            "lastUsed": date_string,
             "gameName": game_name,
             "gameVersion": [self.game_info.version.major, self.game_info.version.minor],
             "mods": [],
@@ -232,7 +233,7 @@ impl SceneCreateProfile {
             .map_err(|e| format!("Could not copy data file: {e}"))?;
 
         // reload profiles for homepage
-        app.profiles = load_profiles(&app.home_dir)?;
+        app.profiles = load_profiles(&app.home_dir, false)?;
         
         app.active_scene = SceneType::ViewProfile(SceneViewProfile {
             profile,
