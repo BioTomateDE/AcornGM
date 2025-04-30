@@ -107,8 +107,11 @@ struct ProfileJson {
 }
 
 pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Profile>, String> {
-    let profiles_dir: PathBuf = home_dir.join("./Profiles");
+    let profiles_dir: PathBuf = home_dir.join("Profiles");
+
     if is_first_launch && !profiles_dir.is_dir() {
+        fs::create_dir_all(profiles_dir)
+            .map_err(|e| format!("Could not create profiles directory: {e}"))?;
         return Ok(vec![])   // return empty list for profiles on first launch instead of error message
     }
 
@@ -123,8 +126,8 @@ pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Pr
             .path();
 
         if !path.is_dir() { continue }
-        let config_file: PathBuf = path.join("./profile.json");
-        let icon_file: PathBuf = path.join("./icon.png");
+        let config_file: PathBuf = path.join("profile.json");
+        let icon_file: PathBuf = path.join("icon.png");
 
         let config: String = match fs::read_to_string(&config_file) {
             Ok(cfg) => cfg,

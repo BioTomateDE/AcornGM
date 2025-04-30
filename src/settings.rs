@@ -10,6 +10,7 @@ pub struct AcornSettings {
 pub fn load_settings(home_dir: &PathBuf, is_first_launch: bool) -> Result<AcornSettings, String> {
     let path: PathBuf = home_dir.join("settings.json");
     if is_first_launch && !path.is_file() {
+        save_settings(home_dir, &Default::default())?;
         return Ok(Default::default())   // return default settings on first launch instead of error message
     }
 

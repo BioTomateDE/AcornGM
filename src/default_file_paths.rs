@@ -32,7 +32,7 @@ pub fn get_default_home_directory() -> Result<PathBuf, String> {
         return Err(format!("Default home directory doesn't exist or is not a directory: {}", dir.display()));
     }
 
-    Ok(dir.join("./AcornGM/"))
+    Ok(dir.join("AcornGM/"))
 }
 
 pub fn get_default_data_file_dir() -> Result<PathBuf, String> {

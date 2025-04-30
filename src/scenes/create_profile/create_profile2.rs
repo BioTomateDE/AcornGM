@@ -191,6 +191,9 @@ impl SceneCreateProfile {
         fs::create_dir_all(&profile_dir)
             .map_err(|e| format!("Could not create profile directory: {e}"))?;
 
+        fs::create_dir(profile_dir.join("Mods"))
+            .map_err(|e| format!("Could not create profile mods directory: {e}"))?;
+
         let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
 
         let profile = Profile {

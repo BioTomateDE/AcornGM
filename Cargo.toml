@@ -7,6 +7,7 @@ edition = "2024"
 debug = true
 
 [dependencies]
+async-std = { version = "1", features = ["attributes", "tokio1"] }  # don't remove this thing fixes Command async error
 iced = { version = "0.12.1", features = ["image", "async-std", "advanced"] }
 whoami = "1.6.0"
 image = "0.24.9"

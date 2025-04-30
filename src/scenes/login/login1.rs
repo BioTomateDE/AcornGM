@@ -137,7 +137,7 @@ impl SceneLogin {
             device_info: app.device_info.clone(),
         };
 
-        Command::perform(async move { request_access_token(body) },
+        Command::perform(request_access_token(body),
             |result| Msg::Login(MsgLogin::AsyncResponseAccessToken(result)),
         )
     }
@@ -159,7 +159,7 @@ impl SceneLogin {
 }
 
 
-fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
+async fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
     #[derive(Debug, Deserialize)]
     struct SuccessResponseJson {
         access_token: String,
@@ -169,11 +169,14 @@ fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
         error: String,
     }
 
-    let client = reqwest::blocking::Client::new();
+    let client = reqwest::Client::new();
+    // info!("Creating request");
     let resp = client
         .post(format!("{ACORN_BASE_URL}/api/access_token"))
         .json(&body)
-        .send();
+        .send()
+        .await;
+    // info!("Sent request");
 
     let resp = match resp {
         Ok(resp) => resp,
@@ -184,8 +187,9 @@ fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
     };
 
     let status: StatusCode = resp.status();
+    // info!("Response code: {status}");
     if status.is_client_error() {
-        let body: String = resp.text().unwrap_or("<invalid string>".to_string());
+        let body: String = resp.text().await.unwrap_or("<invalid string>".to_string());
         match serde_json::from_str::<ErrorResponseJson>(&body) {
             Ok(json) => {
                 if status.as_u16() != 404 {
@@ -199,7 +203,7 @@ fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
         return None
     }
     if status.is_server_error() {
-        let body: String = resp.text().unwrap_or("<invalid string>".to_string());
+        let body: String = resp.text().await.unwrap_or("<invalid string>".to_string());
         match serde_json::from_str::<ErrorResponseJson>(&body) {
             Ok(json) => warn!("Server error response {}: {}", status.formatted(), json.error),
             Err(_) => warn!("(Raw) Server error response {}: {}", status.formatted(), body),
@@ -207,13 +211,14 @@ fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
         return None
     }
 
-    let json = match resp.json::<SuccessResponseJson>() {
+    let json = match resp.json::<SuccessResponseJson>().await {
         Ok(json) => json,
         Err(e) => {
             error!("JSON parse error: {e}");
             return None
         }
     };
+    info!("Response json: {json:?}");
 
     Some(json.access_token)
 }

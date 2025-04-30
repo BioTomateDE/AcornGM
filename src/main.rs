@@ -4,6 +4,7 @@ mod default_file_paths;
 mod ui_templates;
 mod settings;
 
+use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
@@ -85,16 +86,23 @@ impl Application for MyApp {
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
         let home_dir: PathBuf = get_home_directory(flags.logger.clone());
         let is_first_launch: bool = check_if_first_launch(&home_dir);
+
+        if let Err(e) = fs::create_dir_all(&home_dir) {
+            show_error_dialogue("Could not create AcornGM home directory", &format!("Error while trying to create AcornGM home directory: {e}"));
+        }
+
         let profiles: Vec<Profile> = load_profiles(&home_dir, is_first_launch).unwrap_or_else(|e| {
             show_error_dialogue("Could not get AcornGM profiles", &e);
             vec![]
         });
+
         let settings: AcornSettings = load_settings(&home_dir, is_first_launch).unwrap_or_else(|e| {
             show_error_dialogue(
                 "Could not load AcornGM settings",
                 &format!("Error while trying to load AcornGM settings: {e}\n\nThe program will use default settings."));
             Default::default()
         });
+
         let device_info: DeviceInfo = get_device_info();
 
         (Self {
