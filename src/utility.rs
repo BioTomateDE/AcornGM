@@ -167,17 +167,17 @@ pub enum PlatformType {
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DeviceInfo {
-    pub distro_pretty: String,
-    pub platform_pretty: String,
-    pub desktop_environment_pretty: String,
+    pub distro: String,
+    pub platform: String,
+    pub desktop_environment: String,
     pub cpu_architecture: String,
 }
 
 pub fn get_device_info() -> DeviceInfo {
     DeviceInfo {
-        distro_pretty: whoami::fallible::distro().unwrap_or_else(|_| "<unknown distro>".to_string()),
-        platform_pretty: whoami::platform().to_string(),
-        desktop_environment_pretty: whoami::desktop_env().to_string(),
+        distro: whoami::fallible::distro().unwrap_or_else(|_| "<unknown distro>".to_string()),
+        platform: whoami::platform().to_string(),
+        desktop_environment: whoami::desktop_env().to_string(),
         cpu_architecture: whoami::arch().to_string(),
     }
 }
