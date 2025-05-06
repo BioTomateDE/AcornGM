@@ -73,6 +73,7 @@ make sure it is vanilla and has not been modified by UndertaleModTool (in that c
 - implement modding and connect to browser
 - (dynamic window size / saving modified window size for users on smaller screen resolutions?)
 - (welcome screen)
+- move resources into binary (`include_bytes!`)
 
 ### AcornGMBackend (Backend)
 - Testing with the new database
