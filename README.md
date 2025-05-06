@@ -49,7 +49,13 @@ make sure it is vanilla and has not been modified by UndertaleModTool (in that c
 ## Todo List
 ### LibGM (Deserializing, Modding)
 - **Fix variable reference not found while parsing variables in code** (important)
-  - s
+  - Right now when you run the program, it will print LOTS of lines; every single one of them
+  indicates that a push or pop instruction could not find a variable for their location.
+  Green lines mean pop, yellow lines mean push. The first number means the position of the 
+  instruction (relative to the chunk CODE). It's followed by a word indicating the variable instance type.
+  And last, it prints (for debug purposes) the top 10 closest variable occurrence positions that exist.
+  The relevant code is in `src/deserialize/code.rs/GMCodeBlob::read_variable@420` and 
+  `src/deserialize/variables.rs/parse_occurrence_chain@99`. **Please someone fix this, I don't know what to do with this anymore.**
 - Serialize CODE, VARI
 - Implement Spline Sprites
 - Replace some raw integer references with `GMRef`s
