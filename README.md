@@ -5,13 +5,15 @@
 Since the modding system is not done, this frontend application is kind of useless now.
 To actually test (and please fix) the \[de\]serialization,
 **go to [LibGM](https://github.com/BioTomateDE/LibGM)** which has a main function as of now.
-I refactored the code for way too long
-(It's still not *that* good and readable tbh but it's my first rust project).
-
-You don't have to do the steps below yet since the frontend app is unfinished.
+You don't actually have to do the steps below yet since the frontend app is unfinished.
 
 
-## How to install and use (developer mode)
+## How to install for Windows (not yet)
+1. On the right, click on **Releases**
+2. Download the latest built release
+3. Run downloaded exe
+
+## How to install (developer mode)
 1. [Install Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) if you haven't already
 2. In your terminal, navigate to where you want to install the program (**not directly in your Documents folder!**)
 3. Clone this repository: `git clone https://github.com/BioTomateDE/AcornGM`
@@ -23,48 +25,46 @@ You don't have to do the steps below yet since the frontend app is unfinished.
     - if you built in release, it will be located in `./target/release/AcornGM.exe`
     - if you built in dev, it will be located in `./target/debug/AcornGM.exe`
 7. Run the built program executable
-8. Click the **Create Profile** button in the bottom right to create a profile for your desired game
-9. Name your profile (typically the name of the game and maybe the version)
-10. (optional) Choose an icon for your profile by clicking the image and selecting a new image file
-11. Click **Next**
-12. Click **Pick File** next to the data file text input and select 
+
+
+## How to use: Creating a Profile
+1. Click the **Create Profile** button in the bottom right to create a profile for your desired game
+2. Name your profile (typically the name of the game and maybe the version)
+3. (optional) Choose an icon for your profile by clicking the image and selecting a new image file
+4. Click **Next**
+5. Click **Pick File** next to the data file text input and select 
 the `data.win` (`game.unx` on Linux) file for your game. It will try to open
 to the default Undertale installation folder for convenience, but choose the one for your game.
 This is how you can find where your Steam games are located: 
-    - Go to your Steam Library
-    - Click on your desired game that you want to mod using AcornGM
-    - Click the **Gear icon** on the right
-    - Click **Properties**
-    - In the Popup, click on the **Installed Files** tab
-    - Click on **Browse...**
-    - The file explorer will open up where the game is located.
-    Remember that path (or copy it) and navigate there in the AcornGM data file picker.
-13. (it might freeze for a couple seconds) It will try to detect the game and version 
+   - Go to your Steam Library
+   - Click on your desired game that you want to mod using AcornGM
+   - Click the **Gear icon** on the right
+   - Click **Properties**
+   - In the Popup, click on the **Installed Files** tab
+   - Click on **Browse...**
+   - The file explorer will open up where the game is located.
+   Remember that path (or copy it) and navigate there in the AcornGM data file picker.
+6. (it might freeze for a couple seconds) It will try to detect the game and version 
 automatically. If it fails to detect it and the game you've selected is either Undertale or Deltarune,
 make sure it is vanilla and has not been modified by UndertaleModTool (in that case, 
 "verify integrity of game files" in steam to reset the data.win)
-14. Click **Next** again
-15. Now you can browse, download and apply mods! (not really because i haven't implemented it yet)
+7. Click **Next** again
+8. Now you can browse, download and apply mods! (not really because i haven't implemented it yet)
+
+
 
 ## Todo List
 ### LibGM (Deserializing, Modding)
-- **Fix variable reference not found while parsing variables in code** (important)
-  - Right now when you run the program, it will print LOTS of lines; every single one of them
-  indicates that a push or pop instruction could not find a variable for their location.
-  Green lines mean pop, yellow lines mean push. The first number means the position of the 
-  instruction (relative to the chunk CODE). It's followed by a word indicating the variable instance type.
-  And last, it prints (for debug purposes) the top 10 closest variable occurrence positions that exist.
-  The relevant code is in `src/deserialize/code.rs/GMCodeBlob::read_variable@420` and 
-  `src/deserialize/variables.rs/parse_occurrence_chain@99`. **Please someone fix this, I don't know what to do with this anymore.**
-- Serialize CODE, VARI
-- Implement Spline Sprites
 - Replace some raw integer references with `GMRef`s
+- Implement Spine Sprites
 - Test if deserializing and serializing work properly by using the output data file with the GameMaker runner
 - Probably fix lots of issues with the step above
 - also test different games and gamemaker versions
-- The entire modding system lol
-- Variable and function occurrence list optimization (see comment)
 - Maybe better texture pages generation? not important though
+- gen8: last object and tile id should be .len() - 1
+- good abstractions for exporting mods
+- create all structs and functions to export all data
+- mod apply logic and abstractions
 
 ### AcornGM (Frontend)
 - Button bar should align to bottom of window
