@@ -18,12 +18,11 @@ serde_json = "1.0.140"
 webbrowser = "1.0.4"
 reqwest = { version = "0.12.15", features = ["blocking", "json"] }
 fast_image_resize = "5.1.3"
-sha2 = "0.10.8"
-#biologischer-log = { path = "../rust-biologischer-log" }
 biologischer-log = { git = "https://github.com/BioTomateDE/rust-biologischer-log.git" }
 log = "0.4"
 once_cell = "1.21.3"
 rfd = "0.15.3"
 arboard = "3.3"
-rand = "0.8.5"
+rand = "0.9.1"
 base64 = "0.22.1"
+blake3 = "1.8.2"

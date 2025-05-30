@@ -1,12 +1,11 @@
 use std::{fmt, fs};
-use std::io::{BufReader, Read};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
 use log::{error, info};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use crate::default_file_paths::get_resource_image_path;
 
 pub fn get_default_icon_image(app_root: &PathBuf) -> Handle {
@@ -126,29 +125,32 @@ impl std::str::FromStr for Version {
     }
 }
 
-pub fn remove_spaces(s: &str) -> String {
-    s.chars().filter(|&c| !c.is_whitespace()).collect()
+pub fn remove_spaces(string: &str) -> String {
+    string
+        .chars()
+        .filter(|&c| !c.is_whitespace())
+        .collect()
 }
 
-pub fn hash_file(path: &Path) -> Result<String, String> {
-    let file = fs::File::open(path)
-        .map_err(|e| format!("[ERROR @ utility::hash_file2]  Could not open data file '{}': {}", path.display(), e))?;
-    let mut reader = BufReader::new(file);
 
-    let mut hasher = Sha256::new();
-    let mut buffer = [0u8; 8192];
+
+/// Hashes a file using Blake3; which is faster than Sha256
+pub fn hash_file(path: &Path) -> Result<String, String> {
+    let mut file = fs::File::open(path)
+        .map_err(|e| format!("Could not open data file '{}': {e}", path.display()))?;
+    let mut hasher = blake3::Hasher::new();
+    let mut buffer = [0; 65536];    // 64KB chunks
 
     loop {
-        let bytes_read = reader.read(&mut buffer)
-            .map_err(|e| format!("[ERROR @ utility::hash_file2]  Could not read from data file '{}': {}", path.display(), e))?;
-        if bytes_read == 0 {
+        let count = file.read(&mut buffer)
+            .map_err(|e| format!("Could not read data file '{}': {e}", path.display()))?;
+        if count == 0 {
             break;
         }
-        hasher.update(&buffer[..bytes_read]);
+        hasher.update(&buffer[..count]);
     }
 
-    let result = hasher.finalize();
-    Ok(format!("{:x}", result))
+    Ok(hasher.finalize().to_hex().to_string())
 }
 
 

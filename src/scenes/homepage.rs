@@ -185,7 +185,7 @@ fn load_profile_mods(profile_dir: &PathBuf, mod_ids: Vec<String>) -> Result<Vec<
 
     for mod_id in mod_ids {
         let _mod_path: PathBuf = mods_dir.join(format!("{mod_id}.acornmod"));
-        // TODO read mod file as zip and extract infomation
+        // TODO read mod file as zip and extract information
     }
 
     Ok(acorn_mods)

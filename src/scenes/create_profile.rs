@@ -63,53 +63,90 @@ fn check_profile_name_valid(profile_name: &str) -> bool {
 
 fn make_profile_dir_name_valid(profile_name: &str) -> String {
     static BANNED_CHARS: [char; 15] = ['.', '/', '\\', '\n', '\r', '\t', '<', '>', ':', '"', '\'', '|', '?', '*', ' '];
-    static BANNED_NAMES: [&'static str; 22] = [
+    static BANNED_NAMES: [&str; 22] = [
         "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
         "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"];
 
-    let mut name: String = String::with_capacity(profile_name.len());
+    let mut name: String = profile_name
+        .chars()
+        .filter(|c| !BANNED_CHARS.contains(c))
+        .collect();
 
-    for char in profile_name.chars() {
-        if !BANNED_CHARS.contains(&char) {
-            name.push(char);
-        }
+    // Truncate if too long (255 bytes is a common filesystem limit)
+    if name.len() > 255 {
+        name.truncate(255);
     }
 
-    // fallback name for directory
-    if name.len() < 1 || name.ends_with('.') || BANNED_NAMES.contains(&name.to_uppercase().as_str()) {
-        name = uuid::Uuid::new_v4().hyphenated().to_string();
+    // Check for empty, trailing dot, or reserved names
+    if name.is_empty() || name.ends_with('.') || BANNED_NAMES.iter().any(|&n| name.eq_ignore_ascii_case(n)) {
+        uuid::Uuid::new_v4().hyphenated().to_string()
+    } else {
+        name
     }
-    name
 }
 
 fn detect_game_and_version(data_file_path: &Path) -> Result<GameInfo, String> {
     let hash: String = hash_file(data_file_path)?;      // {..} SLOW OPERATION
-    info!("Game data.win SHA-256 Hash: {hash}");
+    info!("Game data.win Blake Hash: {hash}");
 
     match hash.as_str() {
-        "7f3e3d6ddc5e6ba3bd45f94c1d6277becbbf3a519d1941d321289d7d2b9f5d26" => Ok(GameInfo {
-            game_type: GameType::Undertale,
-            version: Version {major: 1, minor: 0},
+        "baaf8d9e126834f5c323d73a2830d9ea47f960c3cea8bd569492f5c0758b8743" => Ok(GameInfo {
+           game_type: GameType::Undertale,
+            version: Version { major: 1, minor: 0 },
         }),
-        "e59b57224b33673c4d1a33d99bcb24fe915061ea3f223d652aaf159d00cbfca8" |
-        "3f85bc6204c2bf4975515e0f5283f5256e2875c81d8746db421182abd7123b08" => Ok(GameInfo {
+        "0fabda67409647e967a4604c2a1a0c6a310cd7d25b77236cb73f89dd723a8c3f" |
+        "a0f3c642c45c0101eb4c2c4d821e2faf7bfadbcdaad9f94a766bda0b3e8af508" => Ok(GameInfo {
             game_type: GameType::Undertale,
             version: Version {major: 1, minor: 1},
         }),
-        "8804cabdcd91777b07f071955e4189384766203ae72d6fbaf828e1ab0948c856" => Ok(GameInfo {
+        "08168e1cd456275d1a6bfe6076f2ac6ddfebdb2bfaae40d9e7f3d716b08bf10b" => Ok(GameInfo {
             game_type: GameType::Undertale,
             version: Version {major: 1, minor: 6},
         }),
-        "cd6dfa453ce9f1122cbd764921f9baa7f4289470717998a852b8f6ca8d6bb334" |
-        "b718f8223a5bb31979ffeed10be6140c857b882fc0d0462b89d6287ae38c81c7" => Ok(GameInfo {
+        "14d6229a6760566c09e2a3465a4e363a5c4ed7ae87be8070a3e8eabd39c26e74" |
+        "bc2358456dc4e55869fbe0cb89a41202fb4a00c13149fad4ef659ab6afe07025" => Ok(GameInfo {
             game_type: GameType::Undertale,
             version: Version {major: 1, minor: 8},
         }),
-        "c346f0a0a1ba02ac2d2db84df5dbf31d5ae28c64d8b65b8db6af70c67c430f39" |
-        "4de4118ba4ad4243025e61337fe796532751032c0a04d0843d8b35f91ec2c220" |
-        "45e594c06dfc48c14a2918efe7eb1874876c47b23b232550f910ce0e52de540d" => Ok(GameInfo {
+        "7d8535cc4232037e6c8a2c43e4739df79c8d7bf0c4cc32b149b04f93096d7a25" => Ok(GameInfo {
             game_type: GameType::Deltarune,
-            version: Version {major: 2, minor: 0},
+            version: Version {major: 1, minor: 0},
+        }),
+        "89d02f5c250b3e4a5bd70d00dd64ab0599285d6476f6b03fdea26ede80a1009e" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 2},
+        }),
+        "e5299bfb361a681accf16f59efbac541a5fc0d343fcb3e75e72bcb8e54a4a9f9" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 3},
+        }),
+        "05d34171189ae6913a32c07862c3a4294eabae45b62db9bb93595752fa55b756" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 4},
+        }),
+        "22529512cca4a00b664ca028b55d3e7f9d7eeebdda6fa6e68237bbd2ed5f74f6" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 5},
+        }),
+        "6a31fade424e742ec58a1564c38ce539e3a18c56655bb56c4b441c370ea16c86" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 6},
+        }),
+        "614b46baece0079bfd4e6d0329deb61c3249badb1af1084cc513301faf279899" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 7},
+        }),
+        "d1605525afdbac0a8f19ab0f8aa07e3ecc8b50ef7497f76106a0e19530d8c3ea" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 8},
+        }),
+        "8b0ff2d0abcbd6c9c0f29e13015e6738b69af11ec4ec13596c822af93bb51081" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 9},
+        }),
+        "9d945891d85fb83779f01b995ab84e44ac6952e63c74d2350c1e93087546f038" => Ok(GameInfo {
+            game_type: GameType::Deltarune,
+            version: Version {major: 1, minor: 10},
         }),
         _ => Ok(GameInfo {
             game_type: GameType::Other("Other Game".to_string()),
