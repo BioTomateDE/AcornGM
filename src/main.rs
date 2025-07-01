@@ -201,7 +201,7 @@ pub fn main() -> iced::Result {
     };
 
     let settings = Settings {
-        id: Some("main".to_string()),
+        id: Some("AcornGM".to_string()),
         window: window_settings,
         flags: MyAppFlags {
             main_window_id: iced::window::Id::unique(),
