@@ -5,7 +5,6 @@ use iced::Color;
 use iced::widget::button;
 use iced::widget::image::Handle;
 use log::{error, info};
-use serde::Serialize;
 use crate::default_file_paths::get_resource_image_path;
 
 pub fn get_default_icon_image(app_root: &PathBuf) -> Handle {
@@ -164,24 +163,6 @@ pub enum PlatformType {
     Android,
     IOS,
     // Other(String),
-}
-
-#[derive(Debug, Clone, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct DeviceInfo {
-    pub distro: String,
-    pub platform: String,
-    pub desktop_environment: String,
-    pub cpu_architecture: String,
-}
-
-pub fn get_device_info() -> DeviceInfo {
-    DeviceInfo {
-        distro: whoami::fallible::distro().unwrap_or_else(|_| "<unknown distro>".to_string()),
-        platform: whoami::platform().to_string(),
-        desktop_environment: whoami::desktop_env().to_string(),
-        cpu_architecture: whoami::arch().to_string(),
-    }
 }
 
 

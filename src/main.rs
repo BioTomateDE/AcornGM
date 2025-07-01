@@ -17,7 +17,7 @@ use once_cell::sync::Lazy;
 use crate::default_file_paths::{check_if_first_launch, get_home_directory, get_resource_image_path};
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
-use crate::utility::{get_device_info, show_error_dialogue, DeviceInfo};
+use crate::utility::show_error_dialogue;
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
 use crate::settings::{load_settings, AcornSettings};
@@ -55,7 +55,6 @@ enum SceneType {
 struct MyApp {
     home_dir: PathBuf,
     app_root: PathBuf,
-    device_info: DeviceInfo,
     settings: AcornSettings,
     profiles: Vec<Profile>,
     active_scene: SceneType,
@@ -103,12 +102,9 @@ impl Application for MyApp {
             Default::default()
         });
 
-        let device_info: DeviceInfo = get_device_info();
-
         (Self {
             home_dir,
             app_root: flags.app_root,
-            device_info,
             profiles,
             settings,
             active_scene: SceneType::HomePage(SceneHomePage {}),

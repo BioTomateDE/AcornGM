@@ -4,9 +4,9 @@ use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
 use webbrowser;
 use log::{error, info, warn};
 use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{show_error_dialogue, DeviceInfo, ACORN_BASE_URL};
+use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
 use crate::scenes::login::SceneLogin;
 use crate::settings::save_settings;
 use crate::ui_templates::generate_button_bar;
@@ -131,13 +131,8 @@ impl SceneLogin {
         if app.settings.access_token.is_some() {
             return Command::none()
         }
-
-        let body = GetAccessTokenRequest {
-            temp_login_token: self.temp_login_token.clone(),
-            device_info: app.device_info.clone(),
-        };
-
-        Command::perform(request_access_token(body),
+        
+        Command::perform(request_access_token(self.temp_login_token.clone()),
             |result| Msg::Login(MsgLogin::AsyncResponseAccessToken(result)),
         )
     }
@@ -159,7 +154,7 @@ impl SceneLogin {
 }
 
 
-async fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
+async fn request_access_token(temp_login_token: String) -> Option<String> {
     #[derive(Debug, Deserialize)]
     struct SuccessResponseJson {
         access_token: String,
@@ -170,13 +165,11 @@ async fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
     }
 
     let client = reqwest::Client::new();
-    // info!("Creating request");
     let resp = client
         .post(format!("{ACORN_BASE_URL}/api/access_token"))
-        .json(&body)
+        .json(&temp_login_token)
         .send()
         .await;
-    // info!("Sent request");
 
     let resp = match resp {
         Ok(resp) => resp,
@@ -187,7 +180,6 @@ async fn request_access_token(body: GetAccessTokenRequest) -> Option<String> {
     };
 
     let status: StatusCode = resp.status();
-    // info!("Response code: {status}");
     if status.is_client_error() {
         let body: String = resp.text().await.unwrap_or("<invalid string>".to_string());
         match serde_json::from_str::<ErrorResponseJson>(&body) {
@@ -232,9 +224,4 @@ impl StatusCodeFmt for StatusCode {
     }
 }
 
-#[derive(Debug, Clone, Serialize)]
-struct GetAccessTokenRequest {
-    temp_login_token: String,
-    device_info: DeviceInfo,
-}
 
