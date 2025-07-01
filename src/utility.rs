@@ -1,21 +1,8 @@
 use std::{fmt, fs};
 use std::io::Read;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use iced::Color;
 use iced::widget::button;
-use iced::widget::image::Handle;
-use log::{error, info};
-use crate::default_file_paths::get_resource_image_path;
-
-pub fn get_default_icon_image(app_root: &PathBuf) -> Handle {
-    let path: PathBuf = get_resource_image_path(app_root, "default_profile_icon.png");
-    if !path.is_file() {
-        error!("Could not get default icon because its path doesn't exist: {}", path.display());
-        return Handle::from_pixels(1, 1, [0, 0, 0, 0])
-    }
-
-    Handle::from_path(path)
-}
 
 
 #[derive(Default, Debug, Clone)]
@@ -167,7 +154,7 @@ pub enum PlatformType {
 
 
 pub fn show_error_dialogue(title: &str, message: &str) {
-    info!("Showing Message Dialogue: {message}");
+    log::info!("Showing Message Dialogue: {message}");
     let message_dialogue: rfd::MessageDialog = rfd::MessageDialog::new()
         .set_title(title)
         .set_description(message)

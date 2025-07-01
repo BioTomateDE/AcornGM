@@ -3,18 +3,18 @@ mod utility;
 mod default_file_paths;
 mod ui_templates;
 mod settings;
+mod resources;
 
 use std::fs;
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Element, Font, Pixels, Size, Subscription};
 use iced::Settings;
 use log::{error, warn};
-use biologischer_log::{init_logger, CustomLogger};
 use iced::window::Icon;
 use once_cell::sync::Lazy;
-use crate::default_file_paths::{check_if_first_launch, get_home_directory, get_resource_image_path};
+use crate::default_file_paths::{check_if_first_launch, get_home_directory};
+use crate::resources::APP_ICON;
 use crate::scenes::login::{MsgLogin, SceneLogin};
 use crate::scenes::view_profile::{MsgViewProfile, SceneViewProfile};
 use crate::utility::show_error_dialogue;
@@ -59,13 +59,11 @@ struct MyApp {
     profiles: Vec<Profile>,
     active_scene: SceneType,
     main_window_id: iced::window::Id,
-    _logger: Arc<CustomLogger>,
 }
 
 #[derive(Clone)]
 struct MyAppFlags {
     main_window_id: iced::window::Id,
-    logger: Arc<CustomLogger>,
     app_root: PathBuf,
 }
 
@@ -83,7 +81,7 @@ impl Application for MyApp {
     type Flags = MyAppFlags;
 
     fn new(flags: Self::Flags) -> (MyApp, Command<Msg>) {
-        let home_dir: PathBuf = get_home_directory(flags.logger.clone());
+        let home_dir: PathBuf = get_home_directory();
         let is_first_launch: bool = check_if_first_launch(&home_dir);
 
         if let Err(e) = fs::create_dir_all(&home_dir) {
@@ -109,7 +107,6 @@ impl Application for MyApp {
             settings,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             main_window_id: flags.main_window_id,
-            _logger: flags.logger,
         }, Command::none())
     }
     fn title(&self) -> String {
@@ -166,7 +163,7 @@ impl MyApp {
 
 
 pub fn main() -> iced::Result {
-    let logger = init_logger(env!("CARGO_PKG_NAME"));
+    biologischer_log::init(env!("CARGO_CRATE_NAME"));
 
     let app_root: PathBuf = match std::env::current_exe() {
         Ok(exe_path) => exe_path
@@ -176,13 +173,11 @@ pub fn main() -> iced::Result {
 
         Err(e) => {
             error!("Could not get path of self executable file: {e}");
-            logger.shutdown();
             std::process::exit(1);
         }
     };
     
-    let icon_path: PathBuf = get_resource_image_path(&app_root, "logo.png");
-    let icon: Option<Icon> = match iced::window::icon::from_file(icon_path) {
+    let icon: Option<Icon> = match iced::window::icon::from_file_data(APP_ICON, None) {
         Ok(icon) => Some(icon),
         Err(e) => {
             warn!("Could not load icon logo: {e}");
@@ -210,7 +205,6 @@ pub fn main() -> iced::Result {
         window: window_settings,
         flags: MyAppFlags {
             main_window_id: iced::window::Id::unique(),
-            logger,
             app_root,
         },
         fonts: vec![],

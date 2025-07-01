@@ -1,12 +1,13 @@
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use biologischer_log::CustomLogger;
 use log::{info, warn};
 use crate::utility::show_error_dialogue;
 
+fn get_username() -> Result<String, String> {
+    whoami::fallible::username().map_err(|e| format!("Could not get username: {e}"))
+}
+
 pub fn get_default_image_prompt_path() -> Result<PathBuf, String> {
-    let username: String = whoami::fallible::username()
-        .map_err(|e| format!("Could not get username: {e}."))?;
+    let username: String = get_username()?;
 
     match std::env::consts::OS {
         "windows" => Ok(PathBuf::from(format!("C:/Users/{username}/Pictures/"))),
@@ -17,8 +18,7 @@ pub fn get_default_image_prompt_path() -> Result<PathBuf, String> {
 }
 
 pub fn get_default_home_directory() -> Result<PathBuf, String> {
-    let username: String = whoami::fallible::username()
-        .map_err(|e| format!("Could not get username: {e}."))?;
+    let username: String = get_username()?;
 
     let dir: String = match std::env::consts::OS {
         "windows" => format!("C:/Users/{username}/Documents"),
@@ -32,12 +32,11 @@ pub fn get_default_home_directory() -> Result<PathBuf, String> {
         return Err(format!("Default home directory doesn't exist or is not a directory: {}", dir.display()));
     }
 
-    Ok(dir.join("AcornGM/"))
+    Ok(dir.join(".acorngm/"))
 }
 
 pub fn get_default_data_file_dir() -> Result<PathBuf, String> {
-    let username: String = whoami::fallible::username()
-        .map_err(|e| format!("Could not get username: {e}."))?;
+    let username: String = get_username()?;
 
     let path_orig: PathBuf = match std::env::consts::OS {
         "windows" => PathBuf::from(&"C:/Program Files (x86)/Steam/steamapps/common/Undertale/"),
@@ -58,7 +57,7 @@ pub fn get_default_data_file_dir() -> Result<PathBuf, String> {
 }
 
 
-pub fn get_home_directory(logger: Arc<CustomLogger>) -> PathBuf {
+pub fn get_home_directory() -> PathBuf {
     // Prioritize environment variable
     if let Ok(string) = std::env::var("ACORNGM_HOME") {
         let path: &Path = Path::new(&string);
@@ -85,18 +84,12 @@ pub fn get_home_directory(logger: Arc<CustomLogger>) -> PathBuf {
         Please open an Issue on GitHub regarding this so your operating system can get native support.\n\
         To fix this error, set the environment variable ACORNGM_HOME to your desired folder path."
     ));
-    logger.shutdown();
     std::process::exit(1);
 }
 
 
-pub fn get_resource_image_path(app_root: &PathBuf, filename: &str) -> PathBuf {
-    // replace with "resources/images" for release build?
-    app_root.join("../../resources/images").join(filename)
-}
-
-
-/// tries to check if this is your first time launching the program to prevent errors.
+/// tries to check if this is your first time launching the program to prevent "home dir not found" errors.
 pub fn check_if_first_launch(home_dir: &PathBuf) -> bool {
     !home_dir.is_dir() && home_dir.parent().map_or(true, |parent| parent.is_dir())
 }
+

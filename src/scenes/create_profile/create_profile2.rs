@@ -9,7 +9,7 @@ use crate::scenes::view_profile::SceneViewProfile;
 use crate::utility::{remove_spaces, show_error_dialogue, GameType};
 use log::{error, info, warn};
 use rfd::FileDialog;
-use crate::scenes::create_profile::{detect_game_and_version, make_profile_dir_name_valid, resize_and_save_icon, SceneCreateProfile};
+use crate::scenes::create_profile::{detect_game_and_version, sanitize_profile_dir_name, resize_and_save_icon, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
 
 #[derive(Debug, Clone)]
@@ -217,7 +217,7 @@ impl SceneCreateProfile {
 
 impl SceneCreateProfile {
     fn create_profile(&mut self, app: &mut MyApp) -> Result<Command<Msg>, String> {
-        let profile_dir_name: String = make_profile_dir_name_valid(&self.profile_name);
+        let profile_dir_name: String = sanitize_profile_dir_name(&self.profile_name);
         let profile_dir: PathBuf = app.home_dir.join("Profiles").join(profile_dir_name);
 
         if !profile_dir.exists() {

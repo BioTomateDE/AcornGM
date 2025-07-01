@@ -61,7 +61,7 @@ fn check_profile_name_valid(profile_name: &str) -> bool {
         profile_name.len() > 0
 }
 
-fn make_profile_dir_name_valid(profile_name: &str) -> String {
+fn sanitize_profile_dir_name(profile_name: &str) -> String {
     static BANNED_CHARS: [char; 15] = ['.', '/', '\\', '\n', '\r', '\t', '<', '>', ':', '"', '\'', '|', '?', '*', ' '];
     static BANNED_NAMES: [&str; 22] = [
         "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7",
