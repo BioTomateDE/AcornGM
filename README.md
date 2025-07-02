@@ -88,5 +88,5 @@ make sure it is vanilla and has not been modified by UndertaleModTool or similar
 - website looks ugly :c
 
 ## Licence
-[View EULA and licence here](https://acorngm.biotomatede.hackclub.app/eula.html)
+[View EULA and licence here](https://acorngm.biotomatede.hackclub.app/eula.html).
 
