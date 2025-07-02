@@ -51,7 +51,7 @@ pub fn generate_button_bar<'a>(
 ) -> Container<'a, Msg> {
     container(
         column![
-            Space::with_height(Length::Fill),   // align to bottom
+            Space::with_height(Length::Fill),    // align to bottom
             row![
                 Row::new()
                     .push(Space::with_width(8.0))
