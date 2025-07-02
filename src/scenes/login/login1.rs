@@ -6,7 +6,7 @@ use log::{error, info, warn};
 use reqwest::StatusCode;
 use serde::Deserialize;
 use crate::scenes::homepage::SceneHomePage;
-use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
+use crate::utility::{show_error_dialogue, ACORN_API_URL};
 use crate::scenes::login::SceneLogin;
 use crate::settings::save_settings;
 use crate::ui_templates::generate_button_bar;
@@ -165,7 +165,7 @@ async fn request_access_token(temp_login_token: String) -> Option<String> {
 
     let client = reqwest::Client::new();
     let resp = client
-        .post(format!("{ACORN_BASE_URL}/api/access_token"))
+        .post(format!("{ACORN_API_URL}/access_token"))
         .json(&temp_login_token)
         .send()
         .await;
@@ -180,7 +180,7 @@ async fn request_access_token(temp_login_token: String) -> Option<String> {
 
     let status: StatusCode = resp.status();
     if status.is_client_error() {
-        let body: String = resp.text().await.unwrap_or("<invalid string>".to_string());
+        let body: String = resp.text().await.unwrap_or_else(|_| "<invalid string>".to_string());
         match serde_json::from_str::<ErrorResponseJson>(&body) {
             Ok(json) => {
                 if status.as_u16() != 404 {
@@ -194,7 +194,7 @@ async fn request_access_token(temp_login_token: String) -> Option<String> {
         return None
     }
     if status.is_server_error() {
-        let body: String = resp.text().await.unwrap_or("<invalid string>".to_string());
+        let body: String = resp.text().await.unwrap_or_else(|_| "<invalid string>".to_string());
         match serde_json::from_str::<ErrorResponseJson>(&body) {
             Ok(json) => warn!("Server error response {}: {}", status.formatted(), json.error),
             Err(_) => warn!("(Raw) Server error response {}: {}", status.formatted(), body),
