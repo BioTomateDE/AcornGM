@@ -105,8 +105,7 @@ impl Scene for SceneLogin {
             column![
                 column![
                     main_content,
-                ]
-                .height(460),
+                ],
                 button_bar
             ]
         )

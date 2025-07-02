@@ -39,7 +39,7 @@ jobs:
         if: matrix.os == 'macos-latest'
         run: |
           mkdir dist
-          cp target/release/* "dist/${{ env.PROGRAM_NAME }}-${{ env.VERSION }}-macOS"
+          cp target/release/AcornGM "dist/${{ env.PROGRAM_NAME }}-${{ env.VERSION }}-macOS"
 
       - name: Build AppImage (Linux)
         if: matrix.os == 'ubuntu-latest'

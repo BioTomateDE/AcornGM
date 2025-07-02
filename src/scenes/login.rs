@@ -13,7 +13,7 @@ pub struct SceneLogin {
 
 
 pub fn generate_token() -> String {
-    let mut buf = [0u8; 42];
+    let mut buf = [0u8; 64];    // needs to be 64 because of database
     if let Err(e) = rand::rngs::OsRng.try_fill_bytes(&mut buf) {
         warn!("Could not generate cryptographically secure random bytes for token: {e}");
         rand::rng().fill_bytes(&mut buf);

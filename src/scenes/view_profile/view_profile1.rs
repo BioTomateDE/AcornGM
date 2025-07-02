@@ -160,9 +160,8 @@ impl Scene for SceneViewProfile {
                         Space::with_height(8.0),
                         column![mod_details_content].height(350),
                     ].width(Length::FillPortion(1))
-                ]
-                .height(Length::Fill),
-                button_bar.padding(5)
+                ],
+                button_bar,
             ]
         )
             .into()

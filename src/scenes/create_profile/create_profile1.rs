@@ -100,8 +100,7 @@ impl SceneCreateProfile {
             column![
                 column![
                     main_content,
-                ]
-                .height(460),
+                ],
                 button_bar
             ]
         )

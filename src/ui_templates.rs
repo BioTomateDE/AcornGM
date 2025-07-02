@@ -1,5 +1,5 @@
 use iced::{alignment, Color, Element, Length};
-use iced::widget::{container, row, text, Container, Row, Space};
+use iced::widget::{container, row, column, text, Container, Row, Space};
 use iced::widget::container::Appearance;
 use crate::Msg;
 
@@ -50,22 +50,25 @@ pub fn generate_button_bar<'a>(
     right_buttons: Vec<Element<'a, Msg>>,
 ) -> Container<'a, Msg> {
     container(
-        row![
-            Row::new()
-                .push(Space::with_width(8.0))
-                .extend(left_buttons)
-            .spacing(10)
-            .align_items(alignment::Alignment::Start),
-            
-            Space::with_width(Length::Fill),
-            
-            Row::new()
-                .extend(right_buttons)
-                .push(Space::with_width(8.0))
-            .spacing(10)
-            .align_items(alignment::Alignment::End),
+        column![
+            Space::with_height(Length::Fill),   // align to bottom
+            row![
+                Row::new()
+                    .push(Space::with_width(8.0))
+                    .extend(left_buttons)
+                .spacing(10)
+                .align_items(alignment::Alignment::Start),
+                
+                Space::with_width(Length::Fill),
+                
+                Row::new()
+                    .extend(right_buttons)
+                    .push(Space::with_width(8.0))
+                .spacing(10)
+                .align_items(alignment::Alignment::End),
+            ].width(Length::Fill),
+            Space::with_height(12),
         ]
-            .width(Length::Fill)
     )
 }
 
