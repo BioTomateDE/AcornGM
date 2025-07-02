@@ -73,7 +73,6 @@ make sure it is vanilla and has not been modified by UndertaleModTool or similar
 - applying mods
 
 ### AcornGM (Frontend)
-- Button bar should align to bottom of window
 - Lighter background color on hover for profile and mod list items
 - fully implement browser and mod info view (when modding system in place)
 - implement modding and connect to browser
