@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=AcornGM
+Exec=acorngm
+Icon=acorngm
+Type=Application
+Categories=Utility;Development
+Comment=A GameMaker mod loader
+Terminal=false
