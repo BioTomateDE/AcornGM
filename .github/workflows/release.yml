@@ -1,0 +1,64 @@
+name: Release Binaries
+
+on:
+  release:
+    types: [published]  # Only run when a release is manually published
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    env:
+      PROGRAM_NAME: MyProgramName
+      VERSION: ${{ github.event.release.tag_name }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: actions/setup-rust@v1
+        with:
+          rust-version: stable
+
+      - name: Build release
+        run: cargo build --release
+
+      # Rename output
+      - name: Rename Windows binary
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir dist
+          cp target/release/*.exe "dist/${{ env.PROGRAM_NAME }}-${{ env.VERSION }}-Windows.exe"
+
+      - name: Rename macOS binary
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir dist
+          cp target/release/* "dist/${{ env.PROGRAM_NAME }}-${{ env.VERSION }}-macOS"
+
+      - name: Build AppImage (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt update
+          sudo apt install -y libfuse2
+          cargo install cargo-appimage
+          cargo appimage
+          mkdir dist
+          cp target/appimage/*.AppImage "dist/${{ env.PROGRAM_NAME }}-${{ env.VERSION }}-Linux.AppImage"
+
+      - name: Generate checksums (only Linux builds it)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Upload artifacts to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
