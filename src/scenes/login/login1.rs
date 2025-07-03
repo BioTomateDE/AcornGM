@@ -6,6 +6,7 @@ use webbrowser;
 use log::{error, info, warn};
 use reqwest::StatusCode;
 use serde::Deserialize;
+use crate::panic_catcher::catch_panic;
 use crate::scenes::homepage::SceneHomePage;
 use crate::utility::{show_error_dialogue, ACORN_API_URL};
 use crate::scenes::login::SceneLogin;
@@ -133,9 +134,9 @@ impl SceneLogin {
             return Command::none()
         }
         
-        Command::perform(request_access_token(self.temp_login_token.clone()),
+        catch_panic(|| Command::perform(request_access_token(self.temp_login_token.clone()),
             |result| Msg::Login(MsgLogin::AsyncResponseAccessToken(result)),
-        )
+        ))
     }
 }
 

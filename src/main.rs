@@ -24,10 +24,11 @@ use crate::utility::show_error_dialogue;
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
 use crate::settings::{load_settings, AcornSettings};
-use crate::updater::{check_for_updates, download_update_file};
+use crate::updater::{cancel_update, check_for_updates, download_update_file, install_update};
 
 #[allow(unused_imports)]
 use async_std as _;
+use rfd::MessageDialogResult;
 use crate::panic_catcher::catch_panic;
 // makes iced commands not panic (enables tokio 1.0 runtime or smth)
 
@@ -45,6 +46,7 @@ enum Msg {
 enum MsgGlobal {
     CheckedForUpdate(Result<Option<String>, String>),
     DownloadedUpdateFile(Result<(), String>),
+    PromptedUpdate(MessageDialogResult),
 }
 
 trait Scene {
@@ -109,7 +111,7 @@ impl Application for MyApp {
             Default::default()
         });
 
-        let command = Command::perform(check_for_updates(), MsgGlobal::CheckedForUpdate).map(Msg::Global);
+        let command = catch_panic(|| Command::perform(check_for_updates(), MsgGlobal::CheckedForUpdate).map(Msg::Global));
 
         (Self {
             home_dir,
@@ -185,7 +187,30 @@ impl MyApp {
                     self.currently_updating = false;
                     return Err(e)
                 };
-                log::info!("dinner is ready")
+                log::info!("dinner is ready");
+                let future = rfd::AsyncMessageDialog::new()
+                    .set_title("AcornGM Updater")
+                    .set_description("AcornGM will now update")
+                    .set_buttons(rfd::MessageButtons::OkCancelCustom("Install".to_string(), "Kys".to_string()))
+                    .set_level(rfd::MessageLevel::Info)
+                    .show();
+                return Ok(Command::perform(future, MsgGlobal::PromptedUpdate).map(Msg::Global))
+            },
+            MsgGlobal::PromptedUpdate(dialogue_result) => {
+                let should_update: bool = match dialogue_result {
+                    MessageDialogResult::No => false,
+                    MessageDialogResult::Cancel => false,
+                    MessageDialogResult::Custom(string) if string == "Kys" => false,
+                    MessageDialogResult::Yes => true,
+                    MessageDialogResult::Ok => true,
+                    MessageDialogResult::Custom(string) if string == "Install" => true,
+                    MessageDialogResult::Custom(other) => return Err(format!("(internal error) Unknown Message Dialogue Result \"{other}\"")),
+                };
+                if should_update {
+                    install_update(&self.home_dir)?;
+                } else {
+                    cancel_update(&self.home_dir)?;
+                }
             },
         }
         

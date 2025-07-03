@@ -19,8 +19,8 @@ pub fn get_default_home_directory() -> Result<PathBuf, String> {
     let username: String = get_username()?;
 
     let dir: String = match std::env::consts::OS {
-        "windows" => format!("C:/Users/{username}/Documents"),
-        "linux" => format!("/home/{username}/Documents"),
+        "windows" => format!("C:/Users/{username}/"),
+        "linux" => format!("/home/{username}/"),
         // add other supported operating systems here
         other => return Err(format!("Unsupported operating system \"{other}\".")),
     };

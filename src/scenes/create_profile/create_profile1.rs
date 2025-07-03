@@ -7,6 +7,7 @@ use rfd::FileDialog;
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
 use crate::scenes::homepage::SceneHomePage;
 use crate::default_file_paths::get_default_image_prompt_path;
+use crate::panic_catcher::catch_panic;
 use crate::scenes::create_profile::{check_profile_name_valid, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
 
@@ -114,10 +115,10 @@ impl SceneCreateProfile {
             .add_filter("Image", &["png", "jpg", "jpeg", "webp", "gif"])
             .set_directory(origin_path);
 
-        Command::perform(
+        catch_panic(|| Command::perform(
             async move { file_dialog.pick_file() },
             |i| Msg::CreateProfile1(MsgCreateProfile1::PickedProfileIcon(i))
-        )
+        ))
     }
 
     fn set_icon_image(&mut self, image_path: Option<PathBuf>) {
