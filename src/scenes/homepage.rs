@@ -11,7 +11,7 @@ use log::warn;
 use crate::Msg;
 use crate::utility::{GameInfo, TransparentButton, GameVersion};
 use serde;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize, Serializer};
 use serde::ser::SerializeStruct;
 use crate::scenes::view_profile::{AcornModLocal};
 use crate::ui_templates::item_style;

@@ -1,12 +1,10 @@
-use std::sync::{Arc, Mutex};
-use crate::utility::{show_error_dialogue, ACORN_BASE_URL};
+use crate::utility::ACORN_BASE_URL;
 use iced::{alignment, Command, Element, Length};
-use iced::widget::{button, column, container, row, scrollable, text, Container, Space};
+use iced::widget::{button, column, container, scrollable, text, Container, Space};
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_VIEW_PROFILE};
 use crate::resources::DEFAULT_PROFILE_ICON;
-use crate::scenes::browser::ModBrowser;
-use crate::scenes::create_profile::{MsgCreateProfile2, SceneCreateProfile};
+use crate::scenes::create_profile::SceneCreateProfile;
 use crate::scenes::homepage::{update_profile_config, MsgHomePage, SceneHomePage};
 use crate::scenes::login::{generate_token, SceneLogin};
 use crate::scenes::view_profile::SceneViewProfile;
