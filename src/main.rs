@@ -5,6 +5,7 @@ mod ui_templates;
 mod settings;
 mod resources;
 mod updater;
+mod panic_catcher;
 
 use std::fs;
 use std::path::PathBuf;
@@ -26,7 +27,9 @@ use crate::settings::{load_settings, AcornSettings};
 use crate::updater::{check_for_updates, download_update_file};
 
 #[allow(unused_imports)]
-use async_std as _;     // makes iced commands not panic (enables tokio 1.0 runtime or smth)
+use async_std as _;
+use crate::panic_catcher::catch_panic;
+// makes iced commands not panic (enables tokio 1.0 runtime or smth)
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -66,6 +69,7 @@ struct MyApp {
     profiles: Vec<Profile>,
     active_scene: SceneType,
     main_window_id: iced::window::Id,
+    currently_updating: bool,
 }
 
 #[derive(Clone)]
@@ -91,7 +95,7 @@ impl Application for MyApp {
         let home_dir: PathBuf = get_home_directory();
         let is_first_launch: bool = check_if_first_launch(&home_dir);
 
-        if let Err(e) = fs::create_dir_all(&home_dir.join("temp")) {
+        if let Err(e) = fs::create_dir_all(home_dir.join("temp")) {
             show_error_dialogue("AcornGM Error", &format!("Error while trying to create AcornGM home directory: {e}"));
         }
 
@@ -104,7 +108,7 @@ impl Application for MyApp {
             show_error_dialogue("AcornGM Error", &format!("Error while trying to load AcornGM settings: {e}\n\nThe program will use default settings."));
             Default::default()
         });
-        
+
         let command = Command::perform(check_for_updates(), MsgGlobal::CheckedForUpdate).map(Msg::Global);
 
         (Self {
@@ -114,6 +118,7 @@ impl Application for MyApp {
             settings,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             main_window_id: flags.main_window_id,
+            currently_updating: false,
         }, command)
     }
     fn title(&self) -> String {
@@ -164,8 +169,6 @@ impl Application for MyApp {
                 .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
         }
         Subscription::none()
-        // time::every(Duration::new(10, 0))
-        //     .map(|_| Msg::Global(MsgGlobal::CheckedForUpdate))
     }
 }
 
@@ -173,11 +176,15 @@ impl MyApp {
     fn handle_global_messages(&mut self, message: MsgGlobal) -> Result<Command<Msg>, String> {
         match message {
             MsgGlobal::CheckedForUpdate(result) => if let Some(asset_file_url) = result? {
+                self.currently_updating = true;
                 let future = download_update_file(self.home_dir.clone(), asset_file_url);
                 return Ok(Command::perform(future, MsgGlobal::DownloadedUpdateFile).map(Msg::Global))
             },
             MsgGlobal::DownloadedUpdateFile(result) => {
-                result?;
+                if let Err(e) = result {
+                    self.currently_updating = false;
+                    return Err(e)
+                };
                 log::info!("dinner is ready")
             },
         }
@@ -238,6 +245,6 @@ pub fn main() -> iced::Result {
         antialiasing: true,
     };
 
-    MyApp::run(settings)
+    catch_panic(|| MyApp::run(settings))
 }
 

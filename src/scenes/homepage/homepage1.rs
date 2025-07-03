@@ -1,6 +1,6 @@
 use crate::utility::ACORN_BASE_URL;
 use iced::{alignment, Command, Element, Length};
-use iced::widget::{button, column, container, scrollable, text, Container, Space};
+use iced::widget::{button, column, container, row, scrollable, text, Container, Space};
 use iced::widget::image::Handle;
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_VIEW_PROFILE};
 use crate::resources::DEFAULT_PROFILE_ICON;
@@ -69,9 +69,10 @@ impl Scene for SceneHomePage {
         }
         Ok(Command::none())
     }
+
     fn view<'a>(&'a self, app: &'a MyApp) -> Result<Element<'a, Msg>, String> {
         let mut profiles: Vec<Element<Msg>> = Vec::new();
-        for (_i, profile) in app.profiles.iter().enumerate() {
+        for profile in app.profiles.iter() {
             profiles.push(profile.view(*COLOR_TEXT1, *COLOR_TEXT2));
             profiles.push(create_divider())
         }
@@ -80,8 +81,11 @@ impl Scene for SceneHomePage {
         let main_content = container(
             iced::widget::column![
                     column![
-                        Space::with_height(8.0),
-                        text("AcornGM").size(28).style(*COLOR_TEXT1),
+                        row![
+                            text("AcornGM").size(28).style(*COLOR_TEXT1),
+                            Space::with_width(Length::Fill),
+                            text(if app.currently_updating {"Updating app..."} else {""}).style(*COLOR_TEXT2),
+                        ],
                         Space::with_height(4.0),
                         text("Recent Profiles").size(14).style(*COLOR_TEXT2).horizontal_alignment(alignment::Horizontal::Center),
                         Space::with_height(6.0),

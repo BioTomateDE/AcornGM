@@ -110,7 +110,7 @@ pub async fn check_for_updates() -> Result<Option<String>, String> {
 
 
 pub async fn download_update_file(home_dir: PathBuf, asset_file_url: String) -> Result<(), String> {
-    log::info!("download_update_file {asset_file_url}");
+    log::info!("Download update file {asset_file_url}");
     
     let temp_file_path: PathBuf = home_dir.join("temp").join("updater_temp_exe");
     if temp_file_path.exists() {
@@ -120,6 +120,7 @@ pub async fn download_update_file(home_dir: PathBuf, asset_file_url: String) -> 
             In that case, you should manually remove this file:\n{}", temp_file_path.display()
         ))
     }
+    
 
     let url: Url = build_url(&asset_file_url)?;
     let client: Client = build_client()?;

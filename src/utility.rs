@@ -117,7 +117,7 @@ pub enum PlatformType {
 
 
 pub fn show_error_dialogue(title: &str, message: &str) {
-    log::info!("Showing Message Dialogue: {message}");
+    log::error!("(dialogue) {message}");
     let message_dialogue: rfd::MessageDialog = rfd::MessageDialog::new()
         .set_title(title)
         .set_description(message)
