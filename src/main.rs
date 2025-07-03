@@ -4,6 +4,7 @@ mod default_file_paths;
 mod ui_templates;
 mod settings;
 mod resources;
+mod updater;
 
 use std::fs;
 use std::path::PathBuf;
@@ -22,6 +23,7 @@ use crate::utility::show_error_dialogue;
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
 use crate::settings::{load_settings, AcornSettings};
+use crate::updater::{check_for_updates, download_update_file};
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -35,7 +37,8 @@ enum Msg {
 
 #[derive(Debug, Clone)]
 enum MsgGlobal {
-    Keepalive,
+    CheckedForUpdate(Result<Option<String>, String>),
+    DownloadedUpdateFile(Result<(), String>),
 }
 
 trait Scene {
@@ -100,6 +103,8 @@ impl Application for MyApp {
                 &format!("Error while trying to load AcornGM settings: {e}\n\nThe program will use default settings."));
             Default::default()
         });
+        
+        let command = Command::perform(check_for_updates(), MsgGlobal::CheckedForUpdate).map(Msg::Global);
 
         (Self {
             home_dir,
@@ -108,14 +113,17 @@ impl Application for MyApp {
             settings,
             active_scene: SceneType::HomePage(SceneHomePage {}),
             main_window_id: flags.main_window_id,
-        }, Command::none())
+        }, command)
     }
     fn title(&self) -> String {
         "AcornGM".to_string()
     }
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         if let Msg::Global(msg) = message {
-            return self.handle_global_messages(msg);
+            return self.handle_global_messages(msg).unwrap_or_else(|e| {
+                show_error_dialogue("AcornGM Error while handling global message", &e);
+                Command::none()
+            });
         }
 
         let scene_ptr = &mut self.active_scene as *mut SceneType;
@@ -131,7 +139,7 @@ impl Application for MyApp {
             }
         };
         result.unwrap_or_else(|e| {
-            show_error_dialogue("AcornGM Error", &e);
+            show_error_dialogue("AcornGM Error while handling message", &e);
             Command::none()
         })
     }
@@ -154,18 +162,26 @@ impl Application for MyApp {
             return time::every(Duration::new(3, 0))
                 .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
         }
-        time::every(Duration::new(10, 0))
-            .map(|_| Msg::Global(MsgGlobal::Keepalive))
+        Subscription::none()
+        // time::every(Duration::new(10, 0))
+        //     .map(|_| Msg::Global(MsgGlobal::CheckedForUpdate))
     }
 }
 
 impl MyApp {
-    fn handle_global_messages(&mut self, message: MsgGlobal) -> Command<Msg> {
+    fn handle_global_messages(&mut self, message: MsgGlobal) -> Result<Command<Msg>, String> {
         match message {
-            MsgGlobal::Keepalive => {}  // TODO send request
+            MsgGlobal::CheckedForUpdate(result) => if let Some(asset_file_url) = result? {
+                let future = download_update_file(self.home_dir.clone(), asset_file_url);
+                return Ok(Command::perform(future, MsgGlobal::DownloadedUpdateFile).map(Msg::Global))
+            },
+            MsgGlobal::DownloadedUpdateFile(result) => {
+                result?;
+                log::info!("dinner is ready")
+            },
         }
         
-        Command::none()
+        Ok(Command::none())
     }
 }
 
