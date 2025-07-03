@@ -47,6 +47,16 @@ fn build_url(url_str: &str) -> Result<Url, String> {
 }
 
 
+pub fn check_if_updated(home_dir: &Path) -> Result<bool, String> {
+    let shell_script_path: PathBuf = home_dir.join("temp").join(TEMP_SHELL_SCRIPT_FILENAME);
+    if shell_script_path.exists() {
+        std::fs::remove_file(shell_script_path).map_err(|e| format!("Could not delete temporary shell script: {e}"))?;
+        return Ok(true)
+    }
+    Ok(false)
+}
+
+
 /// Checks for newer releases in GitHub/BioTomateDE/AcornGM.
 /// Returns URL to download new binary for this platform.
 pub async fn check_for_updates() -> Result<Option<String>, String> {

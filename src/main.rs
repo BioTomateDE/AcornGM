@@ -24,7 +24,7 @@ use crate::utility::show_error_dialogue;
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
 use crate::settings::{load_settings, AcornSettings};
-use crate::updater::{cancel_update, check_for_updates, download_update_file, install_update};
+use crate::updater::{cancel_update, check_for_updates, check_if_updated, download_update_file, install_update};
 
 #[allow(unused_imports)]
 use async_std as _;
@@ -111,6 +111,10 @@ impl Application for MyApp {
             Default::default()
         });
 
+        // TODO show some message saying "update successful" or something
+        if let Err(e) = check_if_updated(&home_dir) {
+            show_error_dialogue("AcornGM Error", &e);
+        }
         let command = catch_panic(|| Command::perform(check_for_updates(), MsgGlobal::CheckedForUpdate).map(Msg::Global));
 
         (Self {
