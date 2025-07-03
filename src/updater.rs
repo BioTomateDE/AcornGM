@@ -104,7 +104,7 @@ pub async fn check_for_updates() -> Result<Option<String>, String> {
     }
 
     let asset_names: String = latest_release.assets.iter().map(|i| i.name.clone()).collect::<Vec<String>>().join(", ");
-    log::warn!("Release \"{}\" does not have any matching assets for platform keyword {}: [{}]", latest_release.name, platform_keyword, asset_names);
+    log::warn!("Release \"{}\" does not have any matching assets for platform keyword \"{}\": [{}] assets", latest_release.name, platform_keyword, asset_names);
     Ok(None)
 }
 
