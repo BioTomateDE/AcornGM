@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -7,7 +7,7 @@ pub struct AcornSettings {
     pub access_token: Option<String>,   // your AcornGM access token
 }
 
-pub fn load_settings(home_dir: &PathBuf, is_first_launch: bool) -> Result<AcornSettings, String> {
+pub fn load_settings(home_dir: &Path, is_first_launch: bool) -> Result<AcornSettings, String> {
     let path: PathBuf = home_dir.join("settings.json");
     if is_first_launch && !path.is_file() {
         save_settings(home_dir, &Default::default())?;
@@ -23,7 +23,7 @@ pub fn load_settings(home_dir: &PathBuf, is_first_launch: bool) -> Result<AcornS
     Ok(settings)
 }
 
-pub fn save_settings(home_dir: &PathBuf, settings: &AcornSettings) -> Result<(), String> {
+pub fn save_settings(home_dir: &Path, settings: &AcornSettings) -> Result<(), String> {
     let path: PathBuf = home_dir.join("settings.json");
 
     let string: String = serde_json::to_string_pretty(settings)

@@ -91,8 +91,8 @@ impl Application for MyApp {
         let home_dir: PathBuf = get_home_directory();
         let is_first_launch: bool = check_if_first_launch(&home_dir);
 
-        if let Err(e) = fs::create_dir_all(&home_dir) {
-            show_error_dialogue("Could not create AcornGM home directory", &format!("Error while trying to create AcornGM home directory: {e}"));
+        if let Err(e) = fs::create_dir_all(&home_dir.join("temp")) {
+            show_error_dialogue("AcornGM Error", &format!("Error while trying to create AcornGM home directory: {e}"));
         }
 
         let profiles: Vec<Profile> = load_profiles(&home_dir, is_first_launch).unwrap_or_else(|e| {
@@ -101,9 +101,7 @@ impl Application for MyApp {
         });
 
         let settings: AcornSettings = load_settings(&home_dir, is_first_launch).unwrap_or_else(|e| {
-            show_error_dialogue(
-                "Could not load AcornGM settings",
-                &format!("Error while trying to load AcornGM settings: {e}\n\nThe program will use default settings."));
+            show_error_dialogue("AcornGM Error", &format!("Error while trying to load AcornGM settings: {e}\n\nThe program will use default settings."));
             Default::default()
         });
         

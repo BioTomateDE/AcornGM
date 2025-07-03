@@ -201,7 +201,7 @@ impl SceneCreateProfile {
 impl SceneCreateProfile {
     fn create_profile(&mut self, app: &mut MyApp) -> Result<Command<Msg>, String> {
         let profile_dir_name: String = sanitize_profile_dir_name(&self.profile_name);
-        let profile_dir: PathBuf = app.home_dir.join("Profiles").join(profile_dir_name);
+        let profile_dir: PathBuf = app.home_dir.join("profiles").join(profile_dir_name);
 
         if !profile_dir.exists() {
             fs::create_dir_all(&profile_dir).map_err(|e| format!("Could not create profile directory: {e}"))?;

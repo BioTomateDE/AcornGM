@@ -112,11 +112,11 @@ pub async fn check_for_updates() -> Result<Option<String>, String> {
 pub async fn download_update_file(home_dir: PathBuf, asset_file_url: String) -> Result<(), String> {
     log::info!("download_update_file {asset_file_url}");
     
-    let temp_file_path: PathBuf = home_dir.join("Temp").join("updater_temp_exe");
+    let temp_file_path: PathBuf = home_dir.join("temp").join("updater_temp_exe");
     if temp_file_path.exists() {
         return Err(format!(
             "Temporary update file already exists!\nPlease make sure there is no other AcornGM instance running while updating. \
-            If this is the only running instance of AcornGM, this file was left over from a previous update.\
+            If this is the only running instance of AcornGM, this file was left over from a previous update.\n\
             In that case, you should manually remove this file:\n{}", temp_file_path.display()
         ))
     }

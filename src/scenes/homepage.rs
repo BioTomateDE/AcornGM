@@ -2,7 +2,7 @@ mod homepage1;
 
 use std::fs;
 use std::fs::ReadDir;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use chrono::{DateTime, Local, Utc};
 use iced::{Color, Element, Length};
 use iced::widget::{button, column, container, row, text, Image, Space};
@@ -95,8 +95,8 @@ impl Profile {
     }
 }
 
-pub fn load_profiles(home_dir: &PathBuf, is_first_launch: bool) -> Result<Vec<Profile>, String> {
-    let profiles_dir: PathBuf = home_dir.join("Profiles");
+pub fn load_profiles(home_dir: &Path, is_first_launch: bool) -> Result<Vec<Profile>, String> {
+    let profiles_dir: PathBuf = home_dir.join("profiles");
 
     if is_first_launch && !profiles_dir.is_dir() {
         fs::create_dir_all(profiles_dir)

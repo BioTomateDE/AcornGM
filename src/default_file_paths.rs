@@ -1,6 +1,4 @@
 use std::path::{Path, PathBuf};
-use log::{info, warn};
-use crate::utility::show_error_dialogue;
 
 fn get_username() -> Result<String, String> {
     whoami::fallible::username().map_err(|e| format!("Could not get username: {e}"))
@@ -38,22 +36,30 @@ pub fn get_default_home_directory() -> Result<PathBuf, String> {
 pub fn get_default_data_file_dir() -> Result<PathBuf, String> {
     let username: String = get_username()?;
 
-    let path_orig: PathBuf = match std::env::consts::OS {
-        "windows" => PathBuf::from(&"C:/Program Files (x86)/Steam/steamapps/common/Undertale/"),
-        "linux" => PathBuf::from(format!("/home/{username}/.steam/steam/steamapps/common/Undertale/assets/")),
-        // add other supported operating system here
-        other => return Err(format!("Unsupported operating system \"{other}\".")),
-    };
-
-    // (Potentially) traverse path hierarchy upwards until the directory exists
-    let mut path: PathBuf = path_orig.clone();
-    while !path.exists() {
-        path = match path.parent() {
-            Some(p) => p.to_path_buf(),
-            None => return Err(format!("Path doesn't exist at all somehow: {}", path.display())),
+    for steam_game in ["DELTARUNE/", "Undertale/assets/", "DeltaruneDEMO/", ""] {
+        let paths_to_try: &[String] = match std::env::consts::OS {
+            "windows" => &[
+                format!("C:/Program Files (x86)/Steam/steamapps/common/{steam_game}"),
+                format!("C:/Program Files/Steam/steamapps/common/{steam_game}"),
+            ],
+            "linux" => &[
+                format!("/home/{username}/.steam/steam/steamapps/common/{steam_game}"),
+                format!("/home/{username}/.var/app/com.valvesoftware.Steam/.steam/steam/steamapps/common/{steam_game}"),
+                format!("/home/{username}/.local/share/Steam/steamapps/common/{steam_game}"),
+                format!("/usr/share/steam/steamapps/common/{steam_game}"),
+            ],
+            // add other supported operating system here
+            other => return Err(format!("Unsupported operating system \"{other}\"")),
         };
+        for path in paths_to_try {
+            let path = PathBuf::from(path);
+            if path.is_dir() {
+                return Ok(path)
+            }
+        }
     }
-    Ok(path)
+    
+    Err("Could not find any steam location".to_string())
 }
 
 
@@ -64,27 +70,30 @@ pub fn get_home_directory() -> PathBuf {
         if path.is_dir() {
             return path.to_path_buf()
         } else {
-            warn!("Invalid home directory path specified by environment variable (ACORNGM_HOME): {string}");
+            log::warn!("Invalid home directory path specified by environment variable (ACORNGM_HOME): {string}");
         }
     };
     
     // If not found, use default profile dir
-    let error_msg: String;
-    info!("Environment Variable for AcornGM home directory (ACORNGM_HOME) not set; trying to use default directory.");
-    match get_default_home_directory() {
-        Ok(path) => {
-            return path;
-        }
-        Err(error) => error_msg = error,
-    }
-
-    // Failed; show error message and exit
-    show_error_dialogue("Error getting AcornGM home directory", &format!(
-        "Failed to find default AcornGM home folder: \"{error_msg}\"\n\
-        Please open an Issue on GitHub regarding this so your operating system can get native support.\n\
-        To fix this error, set the environment variable ACORNGM_HOME to your desired folder path."
-    ));
-    std::process::exit(1);
+    log::debug!("Environment Variable for AcornGM home directory (ACORNGM_HOME) not set; trying to use default directory.");
+    
+    get_default_home_directory().unwrap_or_else(|error| {
+        // Failed to get home directory; show error message and exit
+        let message: String = format!(
+            "Failed to find default AcornGM home folder: \"{error}\"\n\
+            Please open an Issue on GitHub regarding this so your operating system can get native support.\n\
+            To fix this error, set the environment variable ACORNGM_HOME to your desired folder path."
+        );
+        
+        rfd::MessageDialog::new()
+            .set_title("Fatal AcornGM Error")
+            .set_description(message)
+            .set_buttons(rfd::MessageButtons::Ok)
+            .set_level(rfd::MessageLevel::Error)
+            .show();
+        
+        std::process::exit(1);
+    })
 }
 
 
