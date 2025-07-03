@@ -10,7 +10,12 @@ use whoami::Platform;
 
 
 const TEMP_EXECUTABLE_FILENAME: &str = "updater_temp_exe";
+#[cfg(unix)]
 const TEMP_SHELL_SCRIPT_FILENAME: &str = "updater_temp_script.sh";
+#[cfg(windows)]
+const TEMP_SHELL_SCRIPT_FILENAME: &str = "updater_temp_script.ps1";
+#[cfg(all(not(unix), not(windows)))]
+compiler_error!("Updater not support on platforms other than Unix and Windows.");
 
 #[derive(Debug, Deserialize)]
 struct GitHubRelease {
@@ -282,8 +287,7 @@ fn install_update_windows(temp_file_path: &Path) -> Result<(), String> {
         .arg("Bypass")
         .arg("-WindowStyle")
         .arg("Hidden")
-        .arg("-File")
-        .arg(shell_script_path)
+        .arg(format!("powershell '{}'", shell_script_path.display()))
         .creation_flags(CREATE_NO_WINDOW)
         .spawn()
         .map_err(|e| format!("Failed to execute updater PowerShell script: {e}"))?;

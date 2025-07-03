@@ -32,10 +32,13 @@ semver = "1.0.26"
 libc = "0.2.174"
 
 [target.'cfg(windows)'.build-dependencies]
-embed-resource = "2.1"
+embed-resource = "3.0.4"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.60.2", features = ["Win32_UI_Controls"] }
+
+[package.metadata.winres]
+windows_subsystem = "windows"   # don't spawn console on windows
 
 [package.metadata.appimage]
 desktop_file = "resources/unix/acorngm.desktop"
