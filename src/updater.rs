@@ -3,7 +3,6 @@ use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-use std::time::Duration;
 use reqwest::{Client, Response, Url};
 use rfd::MessageDialogResult;
 use serde::Deserialize;
@@ -174,17 +173,19 @@ pub fn install_update(home_dir: &Path) -> Result<(), String> {
     log::info!("Installing update...");
     let temp_file_path: PathBuf = home_dir.join("temp").join(TEMP_EXECUTABLE_FILENAME);
 
-    if cfg!(unix) {
+    #[cfg(unix)] {
         if let Err(e) = install_update_unix(&temp_file_path) {
             cancel_update(home_dir)?;
             return Err(e)
         };
-    } else if cfg!(windows) {
+    }
+    #[cfg(windows)] {
         if let Err(e) = install_update_windows(&temp_file_path) {
             cancel_update(home_dir)?;
             return Err(e)
         };
-    } else {
+    }
+    #[cfg(all(not(unix), not(windows)))] {
         return Err(format!("Unsupported platform {}; cannot update", whoami::platform()));
     }
 
@@ -211,7 +212,7 @@ fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
         .map(|var| format!("export ACORNGM_HOME={}", var))
         .unwrap_or_default();
 
-    let script_contents = format!(r#"\
+    let script_contents = format!(r#"
         #!/usr/bin/env bash
         {}
         nohup '{}' &disown
@@ -232,7 +233,63 @@ fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
 
 
 fn install_update_windows(temp_file_path: &Path) -> Result<(), String> {
-    todo!()
+    use std::os::windows::process::CommandExt;
+    const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+    let cur_exe_path: PathBuf = std::env::current_exe()
+        .map_err(|e| format!("Could not get path of current executable file: {e}"))?;
+
+    let shell_script_path: PathBuf = temp_file_path.parent().ok_or("Temporary exe file does not have a parent")?.join(TEMP_SHELL_SCRIPT_FILENAME);
+    let acorn_home: String = std::env::var("ACORNGM_HOME")
+        .map(|var| format!("$env:ACORNGM_HOME = \"{}\"", var))
+        .unwrap_or_default();
+
+    let script_contents = format!(r#"
+        [reflection.assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null;
+        {0}
+        $i = 0
+        While (Get-Process -ProcessName AcornGM -ErrorAction SilentlyContinue) {{
+            Start-Sleep 0.1
+            $i += 1
+            if ($i -gt 30) {{
+                [windows.forms.messagebox]::Show(
+                    'Could not update AcornGM executable file because the program is still running after 3 seconds!',
+                    'AcornGM Updater Script',
+                    0,
+                    'Error'
+                )
+                Exit
+            }}
+        }}
+
+        Move-Item -Path '{1}' -destination '{2}' -Force
+        Start-Process '{2}'
+        [windows.forms.messagebox]::Show(
+            'AcornGM updated successfully!',
+            'AcornGM Updater Script',
+            0,
+            'Information'
+        )
+        "#, acorn_home, temp_file_path.display(), cur_exe_path.display(),
+    );
+
+    std::fs::write(&shell_script_path, script_contents)
+        .map_err(|e| format!("Could not write temporary PowerShell script \"{}\": {e}", shell_script_path.display()))?;
+
+    log::info!("Launching PowerShell script");
+    std::process::Command::new("powershell.exe")
+        .arg("-ExecutionPolicy")
+        .arg("Bypass")
+        .arg("-WindowStyle")
+        .arg("Hidden")
+        .arg("-File")
+        .arg(shell_script_path)
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|e| format!("Failed to execute updater PowerShell script: {e}"))?;
+
+    log::info!("Quitting old instance");
+    std::process::exit(0);
 }
 
 
