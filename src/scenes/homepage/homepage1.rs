@@ -29,8 +29,8 @@ impl Scene for SceneHomePage {
                     icon: Handle::from_memory(DEFAULT_PROFILE_ICON),
                     data_file_path: "".to_string(),
                     game_info: GameInfo::default(),
-                    game_name: "".to_string(),
                     game_version_str: "".to_string(),
+                    game_auto_detected: false,
                     is_game_version_valid: true,        // to hide error when no data file is loaded
                     is_file_picker_open: false,
                 });

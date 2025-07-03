@@ -6,37 +6,10 @@ use iced::widget::button;
 
 
 #[derive(Default, Debug, Clone)]
-pub enum GameType {
-    #[default]
-    Unset,
-    Undertale,
-    Deltarune,
-    Other(String),
-}
-impl GameType {
-    pub fn from_name(name: &str) -> Self {
-        match name {
-            "Undertale" => Self::Undertale,
-            "Deltarune" => Self::Deltarune,
-            other => Self::Other(other.to_string()),
-        }
-    }
-    pub fn to_string(&self) -> Option<String> {
-        match &self {
-            GameType::Unset => None,
-            GameType::Undertale => Some("Undertale".to_string()),
-            GameType::Deltarune => Some("Deltarune".to_string()),
-            GameType::Other(name) => Some(name.clone()),
-        }
-    }
-}
-
-#[derive(Default, Debug, Clone)]
 pub struct GameInfo {
-    pub game_type: GameType,
-    pub version: Version,
+    pub game_name: String,
+    pub game_version: GameVersion,
 }
-
 
 
 #[derive(Debug, Clone, Copy)]
@@ -68,27 +41,24 @@ impl fmt::Display for ParseVersionError {
 
 
 #[derive(Debug, Clone, Default)]
-pub struct Version {
+pub struct GameVersion {
     pub major: u32,
     pub minor: u32,
 }
 
-impl Version {
-    pub fn from_vec(vec: [u32; 2]) -> Self {
-        Self {
-            major: vec[0],
-            minor: vec[1],
-        }
+impl GameVersion {
+    pub fn new(major: u32, minor: u32) -> Self {
+        Self { major, minor }
     }
 }
 
-impl fmt::Display for Version {
+impl fmt::Display for GameVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{:02}", self.major, self.minor)
     }
 }
 
-impl std::str::FromStr for Version {
+impl std::str::FromStr for GameVersion {
     type Err = ParseVersionError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.split('.');
@@ -108,17 +78,9 @@ impl std::str::FromStr for Version {
             return Err(ParseVersionError);
         }
 
-        Ok(Version { major, minor })
+        Ok(GameVersion { major, minor })
     }
 }
-
-pub fn remove_spaces(string: &str) -> String {
-    string
-        .chars()
-        .filter(|&c| !c.is_whitespace())
-        .collect()
-}
-
 
 
 /// Hashes a file using Blake3; which is faster than Sha256

@@ -1,16 +1,17 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use chrono::{DateTime, Local};
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, row, button, TextInput};
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED, WINDOW_SIZE_VIEW_PROFILE};
 use crate::default_file_paths::get_default_data_file_dir;
 use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
-use crate::utility::{remove_spaces, GameType};
 use log::{info, warn};
 use rfd::FileDialog;
 use crate::scenes::create_profile::{detect_game_and_version, sanitize_profile_dir_name, resize_and_save_icon, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
+use crate::utility::{GameInfo, GameVersion};
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile2 {
@@ -48,10 +49,10 @@ impl SceneCreateProfile {
                 if self.is_file_picker_open {
                     return Err("Please close the file picker before changing scene.".to_string())
                 }
-                if !self.is_profile_name_valid || !self.is_game_version_valid {
-                    return Ok(Command::none())
-                }
-                if let GameType::Unset = self.game_info.game_type {
+                if !self.is_profile_name_valid 
+                    || !self.is_game_version_valid
+                    || self.game_info.game_name.trim().is_empty() 
+                    || self.game_version_str.trim().is_empty() {
                     return Ok(Command::none())
                 }
                 return self.create_profile(app).map_err(|e| format!("Could not create profile: {e}"))
@@ -62,7 +63,7 @@ impl SceneCreateProfile {
             },
 
             MsgCreateProfile2::SubmitDataPath => {
-                self.detect_game();
+                self.detect_game()?;
             },
 
             MsgCreateProfile2::PickDataPath => {
@@ -76,7 +77,7 @@ impl SceneCreateProfile {
                 self.is_file_picker_open = false;
                 let data_path: &str = data_path.to_str().ok_or_else(|| format!("Could not convert data path to string: {data_path:?}"))?;
                 self.data_file_path = data_path.to_string();
-                self.detect_game();
+                self.detect_game()?;
             },
 
             MsgCreateProfile2::PickedDataPath(None) => {
@@ -85,24 +86,23 @@ impl SceneCreateProfile {
             },
 
             MsgCreateProfile2::EditGameName(name) => {
-                // only allow for `Other` game type; when game wasn't automatically detected
-                if let GameType::Other(_) = &self.game_info.game_type {
-                    self.game_name = name.clone();
-                    self.game_info.game_type = GameType::Other(name);
+                // only allow editing when game couldn't be automatically detected
+                if !self.game_auto_detected {
+                    self.game_info.game_name = name;
                 }
             },
 
             MsgCreateProfile2::EditGameVersion(version_str) => {
-                // ignore if no data file loaded or if version was automatically detected
-                if !matches!(self.game_info.game_type, GameType::Other(_)) {
+                // only allow editing when game couldn't be automatically detected
+                if !self.game_auto_detected {
                     return Ok(Command::none())
                 }
-                self.game_version_str = remove_spaces(&version_str);
+                self.game_version_str = version_str.trim().to_string();
                 let Ok(version) = version_str.parse() else {
                     self.is_game_version_valid = false;
                     return Ok(Command::none())
                 };
-                self.game_info.version = version;
+                self.game_info.game_version = version;
                 self.is_game_version_valid = true;
             },
         }
@@ -114,13 +114,11 @@ impl SceneCreateProfile {
             if self.is_game_version_valid {""} else {"Invalid Version (example for valid version: 1.63)"}
         ).size(12).style(*COLOR_TEXT_RED);
 
-        let auto_detected = text(
-            match self.game_info.game_type {
-                GameType::Unset => "",
-                GameType::Other(_) => "Could not determine game version!\nIf your game is Undertale or Deltarune, please make sure it is not modified!",
-                _ => "Game Name and Version automatically detected!",
-            }
-        );
+        let auto_detected = text(if self.game_auto_detected {
+            "Game Name and Version automatically detected!"
+        } else {
+            "Could not determine game version!\nIf your game is Undertale or Deltarune, please make sure it is not modified!"
+        });
 
         let main_content = container(
             iced::widget::column![
@@ -143,7 +141,7 @@ impl SceneCreateProfile {
                         column![
                             text("Game Name").size(14).style(*COLOR_TEXT2),
                             text("").size(4),
-                            TextInput::new("Game", &self.game_name)
+                            TextInput::new("Game", &self.game_info.game_name)
                                 .on_input(|string| Msg::CreateProfile2(MsgCreateProfile2::EditGameName(string)))
                         ],
                         column![
@@ -179,22 +177,23 @@ impl SceneCreateProfile {
         ).into())
     }
 
-    fn detect_game(&mut self) {
-        let data_file_path: &Path = Path::new(&self.data_file_path);
-
-        match detect_game_and_version(data_file_path) {
-            Ok(game_info) => {
-                self.game_name = match &game_info.game_type {
-                    GameType::Other(name) => name.clone(),
-                    GameType::Undertale => "Undertale".to_string(),
-                    GameType::Deltarune => "Deltarune".to_string(),
-                    GameType::Unset => "".to_string(),
-                };
-                self.game_version_str = game_info.version.to_string();
+    fn detect_game(&mut self) -> Result<(), String> {
+        match detect_game_and_version(Path::new(&self.data_file_path))? {
+            Some(game_info) => {
+                self.game_version_str = game_info.game_version.to_string();
                 self.game_info = game_info;
-            },
-            Err(_) => {},
-        };
+                self.game_auto_detected = true;
+            }
+            None => {
+                self.game_version_str = "".to_string();
+                self.game_info = GameInfo {
+                    game_name: "".to_string(),
+                    game_version: GameVersion::new(0, 0),
+                };
+                self.game_auto_detected = true;
+            }
+        }
+        Ok(())
     }
 }
 
@@ -205,41 +204,25 @@ impl SceneCreateProfile {
         let profile_dir: PathBuf = app.home_dir.join("Profiles").join(profile_dir_name);
 
         if !profile_dir.exists() {
-            fs::create_dir_all(&profile_dir)
-                .map_err(|e| format!("Could not create profile directory: {e}"))?;
-        }
-        if !profile_dir.exists() {
-            fs::create_dir_all(profile_dir.join("Mods"))
-                .map_err(|e| format!("Could not create profile mods directory: {e}"))?;
+            fs::create_dir_all(&profile_dir).map_err(|e| format!("Could not create profile directory: {e}"))?;
         }
 
-        let date_now: chrono::DateTime<chrono::Utc> = chrono::Utc::now();
+        let date_now: DateTime<Local> = Local::now();
 
         let profile = Profile {
             index: app.profiles.len(),
             name: self.profile_name.clone(),
             game_info: self.game_info.clone(),
-            date_created: date_now.with_timezone(&chrono::Local),
-            last_used: date_now.with_timezone(&chrono::Local),
+            created_at: date_now,
+            last_used: date_now,
             mods: vec![],
             icon: self.icon.clone(),
             path: profile_dir.clone(),
         };
         
         let config_file: PathBuf = profile_dir.join("profile.json");
-        let date_string: String = date_now.to_string();
-        let game_name: String = self.game_info.game_type.to_string()
-            .ok_or("Game Type is somehow not set; this should have already been checked, though.".to_string())?;
-
-        let config: serde_json::Value = serde_json::json!({
-            "displayName": self.profile_name,
-            "dateCreated": date_string,
-            "lastUsed": date_string,
-            "gameName": game_name,
-            "gameVersion": [self.game_info.version.major, self.game_info.version.minor],
-            "mods": [],
-        });
-        let config: String = serde_json::to_string_pretty(&config).expect("Could not convert (half literal) json to string");
+        let config: String = serde_json::to_string_pretty(&profile)
+            .map_err(|e| format!("Could not json serialize profile config: {e}"))?;
 
         // write config json
         fs::write(config_file, config)
@@ -263,6 +246,7 @@ impl SceneCreateProfile {
             browser: Default::default(),
             mod_details: Default::default(),
         });
+        
         // resize window for new scene
         Ok(iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
     }
