@@ -25,6 +25,9 @@ use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneC
 use crate::settings::{load_settings, AcornSettings};
 use crate::updater::{check_for_updates, download_update_file};
 
+#[allow(unused_imports)]
+use async_std as _;     // makes iced commands not panic (enables tokio 1.0 runtime or smth)
+
 #[derive(Debug, Clone)]
 enum Msg {
     Global(MsgGlobal),
