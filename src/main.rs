@@ -211,6 +211,7 @@ impl MyApp {
                 } else {
                     cancel_update(&self.home_dir)?;
                 }
+                self.currently_updating = false;
             },
         }
         

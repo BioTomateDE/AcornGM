@@ -15,6 +15,7 @@ dependencies = [
  "fast_image_resize",
  "iced",
  "image",
+ "libc",
  "log",
  "once_cell",
  "rand 0.9.1",
