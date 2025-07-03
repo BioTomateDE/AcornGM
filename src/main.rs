@@ -10,6 +10,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 use iced::{time, Application, Color, Command, Element, Font, Pixels, Size, Subscription};
 use iced::Settings;
+use iced::widget::text;
 use log::{error, warn};
 use iced::window::Icon;
 use once_cell::sync::Lazy;
@@ -38,8 +39,8 @@ enum MsgGlobal {
 }
 
 trait Scene {
-    fn update(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg>;
-    fn view<'a>(&'a self, app: &'a MyApp) -> Element<'a, Msg>;
+    fn update(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String>;
+    fn view<'a>(&'a self, app: &'a MyApp) -> Result<Element<'a, Msg>, String>;
 }
 
 #[derive(Debug, Clone)]
@@ -67,9 +68,9 @@ struct MyAppFlags {
     app_root: PathBuf,
 }
 
-const COLOR_TEXT1: Lazy<Color> = Lazy::new(|| Color::new(0.906, 0.890, 0.835, 1.0));
-const COLOR_TEXT2: Lazy<Color> = Lazy::new(|| Color::new(0.576, 0.573, 0.569, 1.0));
-const COLOR_TEXT_RED: Lazy<Color> = Lazy::new(|| Color::new(0.929, 0.192, 0.122, 1.0));
+static COLOR_TEXT1: Lazy<Color> = Lazy::new(|| Color::new(0.906, 0.890, 0.835, 1.0));
+static COLOR_TEXT2: Lazy<Color> = Lazy::new(|| Color::new(0.576, 0.573, 0.569, 1.0));
+static COLOR_TEXT_RED: Lazy<Color> = Lazy::new(|| Color::new(0.929, 0.192, 0.122, 1.0));
 
 const WINDOW_SIZE_NORMAL: Size = Size { width: 500.0, height: 500.0 };
 const WINDOW_SIZE_VIEW_PROFILE: Size = Size { width: 900.0, height: 800.0 };
@@ -121,22 +122,29 @@ impl Application for MyApp {
         let app = self;
         
         // safe because scene is not read or written to while pattern matching; only by scene.update()
-        unsafe {
+        let result = unsafe {
             match &mut *scene_ptr {
                 SceneType::HomePage(scene) => scene.update(app, message),
                 SceneType::CreateProfile(scene) => scene.update(app, message),
                 SceneType::ViewProfile(scene) => scene.update(app, message),
                 SceneType::Login(scene) => scene.update(app, message),
             }
-        }
+        };
+        result.unwrap_or_else(|e| {
+            show_error_dialogue("AcornGM Error", &e);
+            Command::none()
+        })
     }
     fn view(&self) -> Element<Self::Message> {
-        match &self.active_scene {
+        let result = match &self.active_scene {
             SceneType::HomePage(scene) => scene.view(self),
             SceneType::CreateProfile(scene) => scene.view(self),
             SceneType::ViewProfile(scene) => scene.view(self),
             SceneType::Login(scene) => scene.view(self),
-        }
+        };
+        result.unwrap_or_else(|e| {
+            text(format!("Error while rendering UI: {e}")).into()
+        })
     }
     fn theme(&self) -> iced::Theme {
         iced::Theme::GruvboxDark

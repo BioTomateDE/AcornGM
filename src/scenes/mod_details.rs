@@ -11,21 +11,21 @@ pub struct ModDetails {
     pub acorn_mod: Option<AcornMod>,
 }
 impl ModDetails {
-    pub fn view(&self) -> Element<Msg> {
+    pub fn view(&self) -> Result<Element<Msg>, String> {
         if self.acorn_mod.is_none() {
-            return container(
+            return Ok(container(
                 column![
                     text("Select a mod from the browser or from your profile's mod list").size(24).style(*COLOR_TEXT2),
                 ],
             )
                 .height(400)
-                .into()
+                .into())
         }
 
         let acorn_mod: &AcornMod = self.acorn_mod.as_ref().unwrap();    // .unwrap() is ok because we checked if it's None, the function returned already
         let icon = Image::new(acorn_mod.icon.clone());
 
-        container(
+        Ok(container(
             column![
                 row![
                     icon,   // height and width should be capped beforehand
@@ -43,7 +43,7 @@ impl ModDetails {
             ]
         )
             .height(400)
-            .into()
+            .into())
     }
 }
 

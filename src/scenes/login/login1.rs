@@ -1,3 +1,4 @@
+use copypasta::ClipboardProvider;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, row, column, text, button, Space};
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2};
@@ -23,13 +24,10 @@ pub enum MsgLogin {
 
 
 impl Scene for SceneLogin {
-    fn update(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
+    fn update(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String> {
         let message: MsgLogin = match message {
             Msg::Login(msg) => msg,
-            other => {
-                error!("Invalid message type {other:?}");
-                return Command::none()
-            }
+            other => return Err(format!("Invalid message type {other:?} for Login")),
         };
 
         match message {
@@ -44,10 +42,15 @@ impl Scene for SceneLogin {
                 app.active_scene = SceneType::HomePage(SceneHomePage {});
             }
             MsgLogin::CopyLink => {
-                self.set_clipboard();
+                let Some(ref mut ctx) = self.clipboard_context else {
+                    return Err("Clipboard seems to be not supported in your environment".to_string())
+                };
+                ctx.set_contents(self.url.clone())
+                    .map_err(|e| format!("Could not set clipboard contents: {e}"))?;
+                info!("Set clipboard contents to {}", self.url);
             }
             MsgLogin::SubRequestAccessToken => {
-                return self.sub_request_access_token(app)
+                return Ok(self.sub_request_access_token(app))
             }
             MsgLogin::AsyncResponseAccessToken(Some(token)) => {
                 info!("Got access token: {token}");
@@ -57,10 +60,10 @@ impl Scene for SceneLogin {
             }
             MsgLogin::AsyncResponseAccessToken(None) => {}
         }
-        Command::none()
+        Ok(Command::none())
     }
 
-    fn view<'a>(&self, app: &'a MyApp) -> Element<'a, Msg> {
+    fn view<'a>(&self, app: &'a MyApp) -> Result<Element<'a, Msg>, String> {
         let status_string: &'static str = if app.settings.access_token.is_some() {"Logged in"} else {"Not logged in"};
 
         let main_content = container(
@@ -101,15 +104,14 @@ impl Scene for SceneLogin {
             button("Next >").on_press(Msg::Login(MsgLogin::Next)).into(),
         ]);
 
-        container(
+        Ok(container(
             column![
                 column![
                     main_content,
                 ],
                 button_bar
             ]
-        )
-            .into()
+        ).into())
     }
 }
 
@@ -134,21 +136,6 @@ impl SceneLogin {
         Command::perform(request_access_token(self.temp_login_token.clone()),
             |result| Msg::Login(MsgLogin::AsyncResponseAccessToken(result)),
         )
-    }
-    
-    fn set_clipboard(&mut self) {
-        let mut clipboard = match arboard::Clipboard::new() {
-            Ok(clipboard) => clipboard,
-            Err(e) => {
-                error!("Could not initialize clipboard: {e}");
-                return
-            }
-        };
-        if let Err(e) = clipboard.set_text(&self.url) {
-            error!("Could not set clipboard contents: {e}");
-        } else {
-            info!("Set clipboard contents to {}", self.url);
-        }
     }
 }
 

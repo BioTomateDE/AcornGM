@@ -31,7 +31,7 @@ impl Default for ModBrowser  {
 }
 
 impl ModBrowser {
-    pub fn view(&self) -> Element<Msg> {
+    pub fn view(&self) -> Result<Element<Msg>, String> {
         let results: Container<Msg> = container(
             column(
                 self.results.iter().map(|i| i.view())
@@ -64,17 +64,16 @@ impl ModBrowser {
             ]
         ).height(100);
 
-        container(
+        Ok(container(
             column![
                 search_bar,
                 scrollable(results).height(500),
                 text("test")
             ].spacing(6),
-        )
-            .into()
+        ).into())
     }
 
-    pub fn update(&mut self, message: MsgBrowser) -> Command<Msg> {
+    pub fn update(&mut self, message: MsgBrowser) -> Result<Command<Msg>, String> {
         match message {
             MsgBrowser::PerformSearch => {
                 // stub
@@ -93,7 +92,7 @@ impl ModBrowser {
             },
         }
 
-        Command::none()
+        Ok(Command::none())
     }
 }
 

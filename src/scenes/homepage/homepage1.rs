@@ -14,13 +14,10 @@ use crate::ui_templates::{create_divider, generate_button_bar, list_style};
 use crate::utility::GameInfo;
 
 impl Scene for SceneHomePage {
-    fn update(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
-        let message = match message {
+    fn update(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String> {
+        let message: MsgHomePage = match message {
             Msg::HomePage(msg) => msg,
-            other => {
-                log::error!("Invalid message type {other:?}");
-                return Command::none()
-            }
+            other => return Err(format!("Invalid message type {other:?} for HomePage")),
         };
 
         match message {
@@ -40,43 +37,41 @@ impl Scene for SceneHomePage {
             },
 
             MsgHomePage::LoadProfile(index) => {
-                if let Some(profile) = app.profiles.get_mut(index) {
-                    // update last used timestamp and save config
-                    profile.last_used = chrono::Local::now();
-                    update_profile_config(profile)
-                        .unwrap_or_else(|e| log::error!("Could not save profile (for last used update): {e}"));
-                    log::info!("Updated last used timestamp of profile \"{}\"", profile.name);
+                let Some(profile) = app.profiles.get_mut(index) else {
+                    return Err(format!("Failed to open profile with index {} in profile list with length {}", index, app.profiles.len()))
+                };
 
-                    app.active_scene = SceneType::ViewProfile(SceneViewProfile {
-                        mods: vec![],
-                        profile: profile.clone(),
-                        browser: Default::default(),
-                        mod_details: Default::default(),
-                    });
-                } else {
-                    show_error_dialogue(
-                        "Could not open AcornGM profile",
-                        &format!("Failed to open profile with index {} in profile list with length {}", index, app.profiles.len())
-                    );
-                    return Command::none()
-                }
+                // update last used timestamp and save config
+                profile.last_used = chrono::Local::now();
+                update_profile_config(profile)
+                    .unwrap_or_else(|e| log::error!("Could not save profile (for last used update): {e}"));
+                log::info!("Updated last used timestamp of profile \"{}\"", profile.name);
 
-                return iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE)
+                app.active_scene = SceneType::ViewProfile(SceneViewProfile {
+                    mods: vec![],
+                    profile: profile.clone(),
+                    browser: Default::default(),
+                    mod_details: Default::default(),
+                });
+
+                return Ok(iced::window::resize(app.main_window_id, WINDOW_SIZE_VIEW_PROFILE))
             },
 
             MsgHomePage::Login => {
                 let temp_login_token: String = generate_token();
                 let url: String = format!("{ACORN_BASE_URL}/goto_discord_auth?temp_login_token={}", temp_login_token);
+                let ctx /* do NOT use explicit type here */ = copypasta::ClipboardContext::new().ok();
 
                 app.active_scene = SceneType::Login(SceneLogin {
                     temp_login_token,
                     url,
+                    clipboard_context: ctx,
                 });
             },
         }
-        Command::none()
+        Ok(Command::none())
     }
-    fn view<'a>(&'a self, app: &'a MyApp) -> Element<'a, Msg> {
+    fn view<'a>(&'a self, app: &'a MyApp) -> Result<Element<'a, Msg>, String> {
         let mut profiles: Vec<Element<Msg>> = Vec::new();
         for (_i, profile) in app.profiles.iter().enumerate() {
             profiles.push(profile.view(*COLOR_TEXT1, *COLOR_TEXT2));
@@ -104,14 +99,13 @@ impl Scene for SceneHomePage {
             button("Create Profile").on_press(Msg::HomePage(MsgHomePage::CreateProfile)).into(),
         ]);
 
-        container(
+        Ok(container(
             iced::widget::column![
                 column![
                     main_content,
                 ],
                 button_bar
             ]
-        )
-            .into()
+        ).into())
     }
 }

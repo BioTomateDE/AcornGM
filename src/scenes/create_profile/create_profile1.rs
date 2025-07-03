@@ -2,14 +2,13 @@ use std::path::PathBuf;
 use iced::{alignment, Command, Element};
 use iced::widget::{container, column, text, button, Image, text_input};
 use iced::widget::image::Handle;
-use log::{error, info, warn};
+use log::{info, warn};
 use rfd::FileDialog;
 use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED};
 use crate::scenes::homepage::SceneHomePage;
 use crate::default_file_paths::get_default_image_prompt_path;
 use crate::scenes::create_profile::{check_profile_name_valid, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
-use crate::utility::show_error_dialogue;
 
 #[derive(Debug, Clone)]
 pub enum MsgCreateProfile1 {
@@ -21,13 +20,10 @@ pub enum MsgCreateProfile1 {
 }
 
 impl SceneCreateProfile {
-    pub fn update1(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
+    pub fn update1(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String> {
         let message: MsgCreateProfile1 = match message {
             Msg::CreateProfile1(msg) => msg,
-            other => {
-                error!("Invalid message type {other:?}");
-                return Command::none()
-            }
+            other => return Err(format!("Invalid message type {other:?} for CreateProfile1")),
         };
 
         match message {
@@ -36,8 +32,7 @@ impl SceneCreateProfile {
             }
             MsgCreateProfile1::StepNext => {
                 if self.is_file_picker_open {
-                    show_error_dialogue("AcornGM User Error", "Please close the file picker before changing scene.");
-                    return Command::none()
+                    return Err("Please close the file picker before changing scene.".to_string())
                 }
                 if self.is_profile_name_valid {
                     self.stage = 2;
@@ -50,7 +45,7 @@ impl SceneCreateProfile {
             MsgCreateProfile1::EditProfileIcon => {
                 if !self.is_file_picker_open {
                     self.is_file_picker_open = true;
-                    return self.pick_profile_icon_image(app)
+                    return Ok(self.pick_profile_icon_image(app))
                 }
             }
             MsgCreateProfile1::PickedProfileIcon(image_path) => {
@@ -58,10 +53,10 @@ impl SceneCreateProfile {
                 self.set_icon_image(image_path);
             }
         }
-        Command::none()
+        Ok(Command::none())
     }
 
-    pub fn view1(&self, _app: &MyApp) -> Element<Msg> {
+    pub fn view1(&self, _app: &MyApp) -> Result<Element<Msg>, String> {
         let profile_name_valid = text(
             if self.is_profile_name_valid {""} else {"Invalid Profile Name"}
         ).size(12).style(*COLOR_TEXT_RED);
@@ -96,15 +91,14 @@ impl SceneCreateProfile {
             button("Next >").on_press(Msg::CreateProfile1(MsgCreateProfile1::StepNext)).into(),
         ]);
         
-        container(
+        Ok(container(
             column![
                 column![
                     main_content,
                 ],
                 button_bar
             ]
-        )
-            .into()
+        ).into())
     }
 }
 

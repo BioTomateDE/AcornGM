@@ -22,10 +22,10 @@ biologischer-log = { git = "https://github.com/BioTomateDE/rust-biologischer-log
 log = "0.4"
 once_cell = "1.21.3"
 rfd = "0.15.3"
-arboard = "3.3"
 rand = "0.9.1"
 base64 = "0.22.1"
 blake3 = "1.8.2"
+copypasta = "0.10.2"
 
 [package.metadata.appimage]
 desktop_file = "resources/acorngm.desktop"

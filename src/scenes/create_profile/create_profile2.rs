@@ -6,8 +6,8 @@ use crate::{Msg, MyApp, SceneType, COLOR_TEXT1, COLOR_TEXT2, COLOR_TEXT_RED, WIN
 use crate::default_file_paths::get_default_data_file_dir;
 use crate::scenes::homepage::{load_profiles, Profile, SceneHomePage};
 use crate::scenes::view_profile::SceneViewProfile;
-use crate::utility::{remove_spaces, show_error_dialogue, GameType};
-use log::{error, info, warn};
+use crate::utility::{remove_spaces, GameType};
+use log::{info, warn};
 use rfd::FileDialog;
 use crate::scenes::create_profile::{detect_game_and_version, sanitize_profile_dir_name, resize_and_save_icon, SceneCreateProfile};
 use crate::ui_templates::generate_button_bar;
@@ -26,13 +26,10 @@ pub enum MsgCreateProfile2 {
 }
 
 impl SceneCreateProfile {
-    pub fn update2(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
+    pub fn update2(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String> {
         let message: MsgCreateProfile2 = match message {
             Msg::CreateProfile2(msg) => msg,
-            other => {
-                error!("Invalid message type {other:?}");
-                return Command::none()
-            }
+            other => return Err(format!("Invalid message type {other:?} for CreateProfile2")),
         };
 
         match message {
@@ -42,27 +39,22 @@ impl SceneCreateProfile {
 
             MsgCreateProfile2::StepBack => {
                 if self.is_file_picker_open {
-                    show_error_dialogue("AcornGM User Error", "Please close the file picker before changing scene.");
-                    return Command::none()
+                    return Err("Please close the file picker before changing scene.".to_string())
                 }
                 self.stage = 1;
             },
 
             MsgCreateProfile2::StepNext => {
                 if self.is_file_picker_open {
-                    show_error_dialogue("AcornGM User Error", "Please close the file picker before changing scene.");
-                    return Command::none()
+                    return Err("Please close the file picker before changing scene.".to_string())
                 }
                 if !self.is_profile_name_valid || !self.is_game_version_valid {
-                    return Command::none()
+                    return Ok(Command::none())
                 }
                 if let GameType::Unset = self.game_info.game_type {
-                    return Command::none()
+                    return Ok(Command::none())
                 }
-                return self.create_profile(app).unwrap_or_else(|e| {
-                    show_error_dialogue("Could not create AcornGM profile", &e);
-                    Command::none()
-                })
+                return self.create_profile(app).map_err(|e| format!("Could not create profile: {e}"))
             }
 
             MsgCreateProfile2::EditDataPath(data_file_path) => {
@@ -76,19 +68,13 @@ impl SceneCreateProfile {
             MsgCreateProfile2::PickDataPath => {
                 if !self.is_file_picker_open {
                     self.is_file_picker_open = true;
-                    return self.pick_data_path(app)
+                    return Ok(self.pick_data_path(app))
                 }
             },
 
             MsgCreateProfile2::PickedDataPath(Some(data_path)) => {
                 self.is_file_picker_open = false;
-                let data_path: &str = match data_path.to_str() {
-                    Some(string) => string,
-                    None => {
-                        error!("Could not convert data path to string: {data_path:?}");
-                        return Command::none()
-                    }
-                };
+                let data_path: &str = data_path.to_str().ok_or_else(|| format!("Could not convert data path to string: {data_path:?}"))?;
                 self.data_file_path = data_path.to_string();
                 self.detect_game();
             },
@@ -109,21 +95,21 @@ impl SceneCreateProfile {
             MsgCreateProfile2::EditGameVersion(version_str) => {
                 // ignore if no data file loaded or if version was automatically detected
                 if !matches!(self.game_info.game_type, GameType::Other(_)) {
-                    return Command::none()
+                    return Ok(Command::none())
                 }
                 self.game_version_str = remove_spaces(&version_str);
                 let Ok(version) = version_str.parse() else {
                     self.is_game_version_valid = false;
-                    return Command::none();
+                    return Ok(Command::none())
                 };
                 self.game_info.version = version;
                 self.is_game_version_valid = true;
             },
         }
-        Command::none()
+        Ok(Command::none())
     }
 
-    pub fn view2(&self, _app: &MyApp) -> Element<Msg> {
+    pub fn view2(&self, _app: &MyApp) -> Result<Element<Msg>, String> {
         let game_version_valid = text(
             if self.is_game_version_valid {""} else {"Invalid Version (example for valid version: 1.63)"}
         ).size(12).style(*COLOR_TEXT_RED);
@@ -183,15 +169,14 @@ impl SceneCreateProfile {
             button("Next >").on_press(Msg::CreateProfile2(MsgCreateProfile2::StepNext)).into(),
         ]);
 
-        container(
+        Ok(container(
             column![
                 column![
                     main_content,
                 ],
                 button_bar
             ]
-        )
-            .into()
+        ).into())
     }
 
     fn detect_game(&mut self) {

@@ -9,9 +9,8 @@ use fast_image_resize as fir;
 use iced::{Command, Element};
 use iced::advanced::image::Data;
 use iced::widget::image::Handle;
-use iced::widget::text;
 use image::DynamicImage;
-use log::{error, info};
+use log::info;
 use crate::{Msg, MyApp, Scene};
 use crate::utility::{hash_file, GameInfo, GameType, Version};
 
@@ -31,23 +30,19 @@ pub struct SceneCreateProfile {
 }
 
 impl Scene for SceneCreateProfile {
-    fn update(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
+    fn update(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String> {
         match self.stage {
             1 => self.update1(app, message),
             2 => self.update2(app, message),
-            other => {
-                error!("Invalid scene stage {other}");
-                Command::none()
-            }
+            other => Err(format!("Invalid scene stage {other}")),
         }
     }
-    fn view(&self, app: &MyApp) -> Element<Msg> {
+    fn view(&self, app: &MyApp) -> Result<Element<Msg>, String> {
         match &self.stage {
             1 => self.view1(app),
             2 => self.view2(app),
             other => {
-                error!("Invalid scene stage {other}");
-                text("Error").into()
+                Err(format!("Invalid scene stage {other}"))
             }
         }
     }

@@ -3,7 +3,6 @@ use iced::{Color, Command, Element, Length};
 use iced::advanced::image::Handle;
 use iced::widget::{container, row, column, text, button, Image, Container, scrollable, Space};
 use iced::widget::container::Appearance;
-use log::error;
 use crate::{Msg, MyApp, Scene, SceneType, COLOR_TEXT1, COLOR_TEXT2, WINDOW_SIZE_NORMAL};
 use crate::scenes::browser::MsgBrowser;
 use crate::scenes::homepage::{SceneHomePage};
@@ -70,19 +69,16 @@ fn mod_item_style(_theme: &iced::Theme) -> Appearance {
 
 
 impl Scene for SceneViewProfile {
-    fn update(&mut self, app: &mut MyApp, message: Msg) -> Command<Msg> {
+    fn update(&mut self, app: &mut MyApp, message: Msg) -> Result<Command<Msg>, String> {
         let message: MsgViewProfile = match message {
             Msg::ViewProfile(msg) => msg,
-            other => {
-                error!("Invalid message type {other:?}");
-                return Command::none()
-            }
+            other => return Err(format!("Invalid message type {other:?} for ViewProfile")),
         };
 
         match message {
             MsgViewProfile::BackToHomepage => {
                 app.active_scene = SceneType::HomePage(SceneHomePage);
-                return iced::window::resize(app.main_window_id, WINDOW_SIZE_NORMAL)
+                return Ok(iced::window::resize(app.main_window_id, WINDOW_SIZE_NORMAL))
             }
 
             MsgViewProfile::ViewModDetails(acorn_mod) => {
@@ -101,10 +97,10 @@ impl Scene for SceneViewProfile {
 
             MsgViewProfile::LaunchGame => {}
         }
-        Command::none()
+        Ok(Command::none())
     }
 
-    fn view<'a>(&'a self, _app: &'a MyApp) -> Element<'a, Msg> {
+    fn view<'a>(&'a self, _app: &'a MyApp) -> Result<Element<'a, Msg>, String> {
         let mut mods: Vec<Element<Msg>> = Vec::new();
         for acorn_mod in &self.mods {
             mods.push(acorn_mod.view());
@@ -146,10 +142,10 @@ impl Scene for SceneViewProfile {
             button("Launch Game").on_press(Msg::ViewProfile(MsgViewProfile::LaunchGame)).into(),
         ]);
 
-        let browser_content: Element<Msg> = self.browser.view();
-        let mod_details_content: Element<Msg> = self.mod_details.view();
+        let browser_content: Element<Msg> = self.browser.view()?;
+        let mod_details_content: Element<Msg> = self.mod_details.view()?;
 
-        container(
+        Ok(container(
             column![
                 row![
                     Space::with_width(4.0),
@@ -163,8 +159,7 @@ impl Scene for SceneViewProfile {
                 ],
                 button_bar,
             ]
-        )
-            .into()
+        ).into())
     }
 }
 

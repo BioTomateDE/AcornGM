@@ -12,7 +12,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     env:
-      PROGRAM_NAME: MyProgramName
+      PROGRAM_NAME: AcornGM
       VERSION: ${{ github.event.release.tag_name }}
 
     steps:
