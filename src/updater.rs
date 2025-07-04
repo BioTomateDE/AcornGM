@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::time::Duration;
 use reqwest::{Client, Response, Url};
 use rfd::MessageDialogResult;
 use serde::Deserialize;
@@ -36,7 +37,7 @@ struct GitHubAsset {
 
 
 fn parse_semver(raw_version: &str) -> Result<semver::Version, String> {
-    semver::Version::parse(raw_version).map_err(|e| format!("Could not parse SemVer \"{}\": {e}", raw_version))
+    semver::Version::parse(raw_version).map_err(|e| format!("Could not parse SemVer \"{raw_version}\": {e}"))
 }
 
 fn build_client() -> Result<Client, String> {
@@ -64,7 +65,6 @@ pub fn check_if_updated(home_dir: &Path) -> Result<bool, String> {
 /// Checks for newer releases in GitHub/BioTomateDE/AcornGM.
 /// Returns URL to download new binary for this platform.
 pub async fn check_for_updates() -> Result<Option<String>, String> {
-    // TODO remove temp shell updater script
     let platform_keyword: &str = match whoami::platform() {
         Platform::Linux | Platform::Bsd | Platform::Illumos => "linux",
         Platform::Windows => "windows",
@@ -214,7 +214,7 @@ fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
 
     let shell_script_path: PathBuf = temp_file_path.parent().ok_or("Temporary exe file does not have a parent")?.join(TEMP_SHELL_SCRIPT_FILENAME);
     let acorn_home: String = std::env::var("ACORNGM_HOME")
-        .map(|var| format!("export ACORNGM_HOME={}", var))
+        .map(|var| format!("export ACORNGM_HOME={var}"))
         .unwrap_or_default();
 
     let script_contents = format!(r#"
@@ -237,6 +237,7 @@ fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
 }
 
 
+#[cfg(windows)]
 fn install_update_windows(temp_file_path: &Path) -> Result<(), String> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
