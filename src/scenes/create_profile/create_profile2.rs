@@ -35,7 +35,9 @@ impl SceneCreateProfile {
 
         match message {
             MsgCreateProfile2::BackToHomepage => {
-                app.active_scene = SceneType::HomePage(SceneHomePage {});
+                app.active_scene = SceneType::HomePage(SceneHomePage {
+                    update_status_text: "",
+                });
             },
 
             MsgCreateProfile2::StepBack => {

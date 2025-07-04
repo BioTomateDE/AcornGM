@@ -6,6 +6,10 @@ mod settings;
 mod resources;
 mod updater;
 mod panic_catcher;
+mod global_messages;
+
+#[allow(unused_imports)]
+use async_std as _;  // makes iced commands not panic (enables tokio 1.x runtime or smth)
 
 use std::fs;
 use std::path::PathBuf;
@@ -24,13 +28,9 @@ use crate::utility::show_error_dialogue;
 use crate::scenes::homepage::{load_profiles, MsgHomePage, Profile, SceneHomePage};
 use crate::scenes::create_profile::{MsgCreateProfile1, MsgCreateProfile2, SceneCreateProfile};
 use crate::settings::{load_settings, AcornSettings};
-use crate::updater::{cancel_update, check_for_updates, check_if_updated, download_update_file, install_update};
-
-#[allow(unused_imports)]
-use async_std as _;
-use rfd::MessageDialogResult;
+use crate::updater::{check_for_updates, check_if_updated};
+use crate::global_messages::MsgGlobal;
 use crate::panic_catcher::catch_panic;
-// makes iced commands not panic (enables tokio 1.0 runtime or smth)
 
 #[derive(Debug, Clone)]
 enum Msg {
@@ -40,13 +40,6 @@ enum Msg {
     CreateProfile2(MsgCreateProfile2),
     ViewProfile(MsgViewProfile),
     Login(MsgLogin),
-}
-
-#[derive(Debug, Clone)]
-enum MsgGlobal {
-    CheckedForUpdate(Result<Option<String>, String>),
-    DownloadedUpdateFile(Result<(), String>),
-    PromptedUpdate(MessageDialogResult),
 }
 
 trait Scene {
@@ -66,12 +59,12 @@ enum SceneType {
 #[derive(Clone)]
 struct MyApp {
     home_dir: PathBuf,
+    /// TODO: remove this probably
     app_root: PathBuf,
     settings: AcornSettings,
     profiles: Vec<Profile>,
     active_scene: SceneType,
     main_window_id: iced::window::Id,
-    currently_updating: bool,
 }
 
 #[derive(Clone)]
@@ -111,10 +104,16 @@ impl Application for MyApp {
             Default::default()
         });
 
-        // TODO show some message saying "update successful" or something
-        if let Err(e) = check_if_updated(&home_dir) {
-            show_error_dialogue("AcornGM Error", &e);
+        let mut scene = SceneHomePage {
+            update_status_text: "",
+        };
+
+        match check_if_updated(&home_dir) {
+            Ok(true) => scene.update_status_text = "App updated!",
+            Ok(false) => {},
+            Err(e) => show_error_dialogue("AcornGM Error", &e),
         }
+
         let command = catch_panic(|| Command::perform(check_for_updates(), MsgGlobal::CheckedForUpdate).map(Msg::Global));
 
         (Self {
@@ -122,14 +121,15 @@ impl Application for MyApp {
             app_root: flags.app_root,
             profiles,
             settings,
-            active_scene: SceneType::HomePage(SceneHomePage {}),
+            active_scene: SceneType::HomePage(scene),
             main_window_id: flags.main_window_id,
-            currently_updating: false,
         }, command)
     }
+
     fn title(&self) -> String {
         "AcornGM".to_string()
     }
+
     fn update(&mut self, message: Self::Message) -> Command<Self::Message> {
         if let Msg::Global(msg) = message {
             return self.handle_global_messages(msg).unwrap_or_else(|e| {
@@ -155,6 +155,7 @@ impl Application for MyApp {
             Command::none()
         })
     }
+
     fn view(&self) -> Element<Self::Message> {
         let result = match &self.active_scene {
             SceneType::HomePage(scene) => scene.view(self),
@@ -166,60 +167,17 @@ impl Application for MyApp {
             text(format!("Error while rendering UI: {e}")).into()
         })
     }
+
     fn theme(&self) -> iced::Theme {
         iced::Theme::GruvboxDark
     }
+
     fn subscription(&self) -> Subscription<Msg> {
         if self.settings.access_token.is_none() && matches!(self.active_scene, SceneType::Login(_)) {
             return time::every(Duration::new(3, 0))
                 .map(|_| Msg::Login(MsgLogin::SubRequestAccessToken))
         }
         Subscription::none()
-    }
-}
-
-impl MyApp {
-    fn handle_global_messages(&mut self, message: MsgGlobal) -> Result<Command<Msg>, String> {
-        match message {
-            MsgGlobal::CheckedForUpdate(result) => if let Some(asset_file_url) = result? {
-                self.currently_updating = true;
-                let future = download_update_file(self.home_dir.clone(), asset_file_url);
-                return Ok(Command::perform(future, MsgGlobal::DownloadedUpdateFile).map(Msg::Global))
-            },
-            MsgGlobal::DownloadedUpdateFile(result) => {
-                if let Err(e) = result {
-                    self.currently_updating = false;
-                    return Err(e)
-                };
-                log::info!("dinner is ready");
-                let future = rfd::AsyncMessageDialog::new()
-                    .set_title("AcornGM Updater")
-                    .set_description("AcornGM will now update")
-                    .set_buttons(rfd::MessageButtons::OkCancelCustom("Install".to_string(), "Kys".to_string()))
-                    .set_level(rfd::MessageLevel::Info)
-                    .show();
-                return Ok(Command::perform(future, MsgGlobal::PromptedUpdate).map(Msg::Global))
-            },
-            MsgGlobal::PromptedUpdate(dialogue_result) => {
-                let should_update: bool = match dialogue_result {
-                    MessageDialogResult::No => false,
-                    MessageDialogResult::Cancel => false,
-                    MessageDialogResult::Custom(string) if string == "Kys" => false,
-                    MessageDialogResult::Yes => true,
-                    MessageDialogResult::Ok => true,
-                    MessageDialogResult::Custom(string) if string == "Install" => true,
-                    MessageDialogResult::Custom(other) => return Err(format!("(internal error) Unknown Message Dialogue Result \"{other}\"")),
-                };
-                if should_update {
-                    install_update(&self.home_dir)?;
-                } else {
-                    cancel_update(&self.home_dir)?;
-                }
-                self.currently_updating = false;
-            },
-        }
-        
-        Ok(Command::none())
     }
 }
 

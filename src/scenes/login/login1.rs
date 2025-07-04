@@ -37,10 +37,15 @@ impl Scene for SceneLogin {
                     .unwrap_or_else(|e| show_error_dialogue("Error while logging in", &e))
             }
             MsgLogin::BackToHomepage => {
-                app.active_scene = SceneType::HomePage(SceneHomePage {});
+                app.active_scene = SceneType::HomePage(SceneHomePage {
+                    update_status_text: ""
+                });
             }
             MsgLogin::Next => {
-                app.active_scene = SceneType::HomePage(SceneHomePage {});
+                // TODO
+                app.active_scene = SceneType::HomePage(SceneHomePage {
+                    update_status_text: "",
+                });
             }
             MsgLogin::CopyLink => {
                 let Some(ref mut ctx) = self.clipboard_context else {

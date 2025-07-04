@@ -24,7 +24,9 @@ pub enum MsgHomePage {
 }
 
 #[derive(Debug, Clone)]
-pub struct SceneHomePage;
+pub struct SceneHomePage {
+    pub update_status_text: &'static str,
+}
 
 #[derive(Debug, Clone)]
 pub struct Profile {

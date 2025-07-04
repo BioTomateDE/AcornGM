@@ -29,8 +29,11 @@ impl SceneCreateProfile {
 
         match message {
             MsgCreateProfile1::BackToHomepage => {
-                app.active_scene = SceneType::HomePage(SceneHomePage {});
+                app.active_scene = SceneType::HomePage(SceneHomePage {
+                    update_status_text: "",
+                });
             }
+            
             MsgCreateProfile1::StepNext => {
                 if self.is_file_picker_open {
                     return Err("Please close the file picker before changing scene.".to_string())
@@ -39,16 +42,19 @@ impl SceneCreateProfile {
                     self.stage = 2;
                 }
             }
+            
             MsgCreateProfile1::EditProfileName(profile_name) => {
                 self.is_profile_name_valid = check_profile_name_valid(&profile_name);
                 self.profile_name = profile_name;
             }
+            
             MsgCreateProfile1::EditProfileIcon => {
                 if !self.is_file_picker_open {
                     self.is_file_picker_open = true;
                     return Ok(self.pick_profile_icon_image(app))
                 }
             }
+            
             MsgCreateProfile1::PickedProfileIcon(image_path) => {
                 self.is_file_picker_open = false;
                 self.set_icon_image(image_path);

@@ -84,7 +84,7 @@ impl Scene for SceneHomePage {
                         row![
                             text("AcornGM").size(28).style(*COLOR_TEXT1),
                             Space::with_width(Length::Fill),
-                            text(if app.currently_updating {"Updating app..."} else {""}).style(*COLOR_TEXT2),
+                            text(self.update_status_text).style(*COLOR_TEXT2),
                         ],
                         Space::with_height(4.0),
                         text("Recent Profiles").size(14).style(*COLOR_TEXT2).horizontal_alignment(alignment::Horizontal::Center),

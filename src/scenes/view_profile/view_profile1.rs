@@ -77,7 +77,9 @@ impl Scene for SceneViewProfile {
 
         match message {
             MsgViewProfile::BackToHomepage => {
-                app.active_scene = SceneType::HomePage(SceneHomePage);
+                app.active_scene = SceneType::HomePage(SceneHomePage {
+                    update_status_text: "",
+                });
                 return Ok(iced::window::resize(app.main_window_id, WINDOW_SIZE_NORMAL))
             }
 
