@@ -9,7 +9,7 @@ To actually test (and please fix) the \[de\]serialization,
 You don't actually have to do the steps below yet since the frontend app is unfinished.
 
 
-## How to install on Windows (not yet)
+## How to install (Windows, Linux)
 1. Go to the **Releases** section (on the top right of this page).
 2. Download the latest .exe file.
 3. Double-click the downloaded file to run the program.
@@ -25,7 +25,7 @@ Since this project is open source, it would be practically impossible to hide ma
 which will cause a "**Run anyway**" button to appear.
 
 
-## How to install (developer mode)
+## How to install (Developer Mode)
 1. Install [Rust Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) if you haven't already.
 2. In your terminal, navigate to where you want to install the program (using the `cd` command).
 3. Clone this repository: `git clone https://github.com/BioTomateDE/AcornGM`.
@@ -43,8 +43,8 @@ which will cause a "**Run anyway**" button to appear.
 3. (optional) Choose an icon for your profile by clicking the image and selecting a new image file.
 4. Click **Next**.
 5. Click **Pick File** next to the data file text input and select
-the `data.win` (`game.unx` on Linux) file for your game. It will try to open
-to the default Undertale installation folder for convenience, but choose the one for your game.
+the data file for your game (e.g. `data.win` or `game.unx`). It will try to open
+to the default Deltarune installation folder for convenience, but choose the one for your game.
 This is how you can find where your Steam games are located: 
    - Go to your Steam Library
    - Click on your desired game that you want to mod using AcornGM
@@ -57,7 +57,7 @@ This is how you can find where your Steam games are located:
 6. It will try to detect the game and version automatically.
 If it fails to detect the version for Undertale or Deltarune,
 make sure it is vanilla and has not been modified by UndertaleModTool or similar (in that case, 
-"verify integrity of game files" in steam to reset the data.win)
+"verify integrity of game files" in steam to reset the data file)
 7. Click **Next** again.
 8. Now you can browse, download and apply mods! (not really because i haven't implemented it yet)
 
@@ -66,11 +66,12 @@ make sure it is vanilla and has not been modified by UndertaleModTool or similar
 ## Todo List
 ### LibGM (Deserializing, Modding)
 - Implement Spine Sprites
-- fix the fucking [de]serializer (hahahahahaha i love yoyogames)
-- more gm version detection probably
-- implement all other chunks
+- fix (de)serialization
+  - `push.i [function]...` is broken
+  - some pointers are being stored as raw ints probably
+- re-implement exporting mods
+- implement applying mods
 - test different games and gamemaker versions
-- applying mods
 
 ### AcornGM (Frontend)
 - Lighter background color on hover for profile and mod list items
@@ -79,13 +80,16 @@ make sure it is vanilla and has not been modified by UndertaleModTool or similar
 - (dynamic window size / saving modified window size for users on smaller screen resolutions?)
 - welcome screen with eula
 - fix icon not showing up??? (arch wayland plasma)
+- fix dialogue choices with ampersands on windows
+- don't delete update file when "Install Later" selected
 
 ### AcornGMBackend (Backend)
 - Testing
-- Searching for mods
+- Searching for mods (smart search with keywords etc.)
 - Being able to delete your account and mods (GDPR)
 - website looks ugly :c
 
 ## Licence
-[View EULA and licence here](https://acorngm.biotomatede.hackclub.app/eula.html).
-
+View Licence and EULA [here](https://acorngm.biotomatede.hackclub.app/eula.html).
+> [!IMPORTANT]
+> If there is a `502 Bad Gateway` error, please contact BioTomateDE (`@farming.simulator`) on Discord.

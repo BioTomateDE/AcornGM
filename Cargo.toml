@@ -27,6 +27,7 @@ base64 = "0.22.1"
 blake3 = "1.8.2"
 copypasta = "0.10.2"
 semver = "1.0.26"
+shell-escape = "0.1.5"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.174"

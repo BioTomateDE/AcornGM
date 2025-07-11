@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::fs::File;
 use std::io::Cursor;
@@ -10,6 +11,7 @@ use serde::Deserialize;
 use whoami::Platform;
 
 
+const UPDATER_LOCK_FILENAME: &str = "updater_lock";
 const TEMP_EXECUTABLE_FILENAME: &str = "updater_temp_exe";
 #[cfg(unix)]
 const TEMP_SHELL_SCRIPT_FILENAME: &str = "updater_temp_script.sh";
@@ -54,8 +56,11 @@ fn build_url(url_str: &str) -> Result<Url, String> {
 
 pub fn check_if_updated(home_dir: &Path) -> Result<bool, String> {
     let shell_script_path: PathBuf = home_dir.join("temp").join(TEMP_SHELL_SCRIPT_FILENAME);
+    let updater_lock_path: PathBuf = home_dir.join("temp").join(UPDATER_LOCK_FILENAME);
+    
     if shell_script_path.exists() {
         std::fs::remove_file(shell_script_path).map_err(|e| format!("Could not delete temporary shell script: {e}"))?;
+        std::fs::remove_file(updater_lock_path).map_err(|e| format!("Could not delete updater lock file: {e}"))?;
         return Ok(true)
     }
     Ok(false)
@@ -176,16 +181,22 @@ pub async fn download_update_file(home_dir: PathBuf, asset_file_url: String) -> 
 
 pub fn install_update(home_dir: &Path) -> Result<(), String> {
     log::info!("Installing update...");
+    let lock_file_path: PathBuf = home_dir.join("temp").join(UPDATER_LOCK_FILENAME);
+    if lock_file_path.exists() {
+        return Err("Could not install update; another AcornGM instance is currently updating!".to_string())
+    }
+    File::create_new(lock_file_path).map_err(|e| format!("Could not create updater lock file: {e}"))?;
+
     let temp_file_path: PathBuf = home_dir.join("temp").join(TEMP_EXECUTABLE_FILENAME);
 
     #[cfg(unix)] {
-        if let Err(e) = install_update_unix(&temp_file_path) {
+        if let Err(e) = install_update_internal(&temp_file_path) {
             cancel_update(home_dir)?;
             return Err(e)
         };
     }
     #[cfg(windows)] {
-        if let Err(e) = install_update_windows(&temp_file_path) {
+        if let Err(e) = install_update_internal(&temp_file_path) {
             cancel_update(home_dir)?;
             return Err(e)
         };
@@ -197,10 +208,12 @@ pub fn install_update(home_dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
+
 #[cfg(unix)]
-fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
+fn install_update_internal(temp_file_path: &Path) -> Result<(), String> {
     let cur_exe_path: PathBuf = std::env::current_exe()
         .map_err(|e| format!("Could not get path of current executable file: {e}"))?;
+    let cur_exe_path_escaped: Cow<str> = shell_escape::unix::escape(cur_exe_path.as_os_str().to_string_lossy());
 
     log::info!("Setting file permissions of new executable file...");
     let metadata = std::fs::metadata(&cur_exe_path)
@@ -219,9 +232,9 @@ fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
 
     let script_contents = format!(r#"
         #!/usr/bin/env bash
-        {}
-        nohup '{}' &disown
-        "#, acorn_home, cur_exe_path.display(),
+        {acorn_home}
+        nohup '{cur_exe_path_escaped}' >/dev/null 2>&1 & disown
+        "#
     );
     std::fs::write(&shell_script_path, script_contents)
         .map_err(|e| format!("Could not write temporary shell script \"{}\": {e}", shell_script_path.display()))?;
@@ -238,21 +251,24 @@ fn install_update_unix(temp_file_path: &Path) -> Result<(), String> {
 
 
 #[cfg(windows)]
-fn install_update_windows(temp_file_path: &Path) -> Result<(), String> {
+fn install_update_internal(temp_file_path: &Path) -> Result<(), String> {
     use std::os::windows::process::CommandExt;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
 
     let cur_exe_path: PathBuf = std::env::current_exe()
         .map_err(|e| format!("Could not get path of current executable file: {e}"))?;
+    
+    let cur_exe_path_escaped: Cow<str> = shell_escape::windows::escape(cur_exe_path.as_os_str().to_string_lossy());
+    let temp_file_path_escaped: Cow<str> = shell_escape::windows::escape(temp_file_path.as_os_str().to_string_lossy());
 
     let shell_script_path: PathBuf = temp_file_path.parent().ok_or("Temporary exe file does not have a parent")?.join(TEMP_SHELL_SCRIPT_FILENAME);
-    let acorn_home: String = std::env::var("ACORNGM_HOME")
+    let acorn_home_cmd: String = std::env::var("ACORNGM_HOME")
         .map(|var| format!("$env:ACORNGM_HOME = \"{}\"", var))
         .unwrap_or_default();
 
     let script_contents = format!(r#"
         [reflection.assembly]::LoadWithPartialName('System.Windows.Forms') | Out-Null;
-        {0}
+        {acorn_home_cmd}
         $i = 0
         While (Get-Process -ProcessName AcornGM -ErrorAction SilentlyContinue) {{
             Start-Sleep 0.1
@@ -268,15 +284,9 @@ fn install_update_windows(temp_file_path: &Path) -> Result<(), String> {
             }}
         }}
 
-        Move-Item -Path '{1}' -destination '{2}' -Force
-        Start-Process '{2}'
-        [windows.forms.messagebox]::Show(
-            'AcornGM updated successfully!',
-            'AcornGM Updater Script',
-            0,
-            'Information'
-        )
-        "#, acorn_home, temp_file_path.display(), cur_exe_path.display(),
+        Move-Item -Path '{temp_file_path_escaped}' -destination '{cur_exe_path_escaped}' -Force
+        Start-Process '{cur_exe_path_escaped}'
+        "#
     );
 
     std::fs::write(&shell_script_path, script_contents)
@@ -299,11 +309,10 @@ fn install_update_windows(temp_file_path: &Path) -> Result<(), String> {
 
 
 pub fn cancel_update(home_dir: &Path) -> Result<(), String> {
-    // FIXME: better solution for this? deleting the file seems unnecessary
     log::info!("Update was cancelled.");
-    let temp_file_path: PathBuf = home_dir.join("temp").join(TEMP_EXECUTABLE_FILENAME);
-    if temp_file_path.exists() {
-        std::fs::remove_file(temp_file_path).map_err(|e| format!("Could not remove temporary update file: {e}"))?;
+    let lock_file_path: PathBuf = home_dir.join("temp").join(UPDATER_LOCK_FILENAME);
+    if lock_file_path.exists() {
+        std::fs::remove_file(lock_file_path).map_err(|e| format!("Could not remove updater lock file: {e}"))?;
     }
     Ok(())
 }
