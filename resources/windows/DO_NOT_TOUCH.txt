@@ -1,0 +1,3 @@
+﻿do NOT fucking edit app.exe.manifest or manifest.rc.
+if you do (even just a trailing newline!),
+then the fuckass microsoft linker will fail and windows builds will panic on init.
