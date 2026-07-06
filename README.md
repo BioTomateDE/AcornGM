@@ -1,6 +1,9 @@
 [//]: # (You are viewing this file in its raw form)
 [//]: # (A formatted view is available at https://github.com/BioTomateDE/AcornGM)
 
+> [!CAUTION]
+> This project is written in an ancient iced version and has like 10 vulnerabilities.
+> I don't recommend running this.
 
 ## How to actually use features (for now)
 Since the modding system is not done, this frontend application is kind of useless now.
